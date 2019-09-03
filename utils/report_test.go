@@ -8,8 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/greenplum-db/gpbackup/options"
-
 	"github.com/blang/semver"
 	"github.com/greenplum-db/gp-common-go-libs/cluster"
 	"github.com/greenplum-db/gp-common-go-libs/dbconn"
@@ -20,6 +18,7 @@ import (
 	"github.com/greenplum-db/gpbackup/backup"
 	"github.com/greenplum-db/gpbackup/backup_filepath"
 	"github.com/greenplum-db/gpbackup/backup_history"
+	"github.com/greenplum-db/gpbackup/options"
 	"github.com/greenplum-db/gpbackup/testutils"
 	"github.com/greenplum-db/gpbackup/utils"
 	. "github.com/onsi/ginkgo"

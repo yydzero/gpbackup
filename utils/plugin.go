@@ -1,12 +1,14 @@
 package utils
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 
@@ -214,14 +216,24 @@ func (plugin *PluginConfig) executeHook(c *cluster.Cluster, verboseCommandMsg st
 	scope := MASTER
 	_, _ = plugin.buildHookErrorMsgAndFunc(command, scope)
 	masterContentID := -1
-	masterOutput, masterErr := c.ExecuteLocalCommand(plugin.buildHookString(command,
-		fpInfo, scope, masterContentID))
+
+	// Create a new context and add a timeout to it
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+	masterOutput, masterErr := exec.CommandContext(ctx,"bash", "-c", plugin.buildHookString(command,
+		fpInfo, scope, masterContentID)).CombinedOutput()
+
+	// Handle command timeout
+	if ctx.Err() == context.DeadlineExceeded {
+		gplog.Error("Command: %s timed out", command)
+		return
+	}
 	if masterErr != nil {
 		if noFatal {
-			gplog.Error(masterOutput)
+			gplog.Error(string(masterOutput))
 			return
 		}
-		gplog.Fatal(masterErr, masterOutput)
+		gplog.Fatal(masterErr, string(masterOutput))
 	}
 
 	// Execute command once on each segment host
