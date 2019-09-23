@@ -31,9 +31,9 @@ CUSTOM_BACKUP_DIR ?= "/tmp"
 .PHONY : coverage integration end_to_end
 
 depend : $(GOLANG_LINTER) $(DEP)
-		dep ensure -v
-		@cd vendor/golang.org/x/tools/cmd/goimports; go install .
-		@cd vendor/github.com/onsi/ginkgo/ginkgo; go install .
+		# dep ensure -v
+		# @cd vendor/golang.org/x/tools/cmd/goimports; go install .
+		# @cd vendor/github.com/onsi/ginkgo/ginkgo; go install .
 
 format :
 		@goimports -w $(shell find . -type f -name '*.go' -not -path "./vendor/*")	
