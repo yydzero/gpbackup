@@ -21,6 +21,8 @@ SUBDIRS_HAS_UNIT=backup/ backup_filepath/ backup_history/ helper/ options/ resto
 SUBDIRS_ALL=$(SUBDIRS_HAS_UNIT) integration/ end_to_end/
 GOLANG_LINTER=$(GOPATH)/bin/golangci-lint
 DEP=$(GOPATH)/bin/dep
+GINKGO=$(GOPATH)/bin/ginkgo
+GOIMPORTS=$(GOPATH)/bin/goimports
 
 DEST = .
 
@@ -30,30 +32,30 @@ CUSTOM_BACKUP_DIR ?= "/tmp"
 
 .PHONY : coverage integration end_to_end
 
-depend : $(GOLANG_LINTER) $(DEP)
-		# dep ensure -v
-		# @cd vendor/golang.org/x/tools/cmd/goimports; go install .
-		# @cd vendor/github.com/onsi/ginkgo/ginkgo; go install .
+depend : $(GOLANG_LINTER) $(GINKGO) $(GOIMPORTS)
+		go mod download
 
-format :
+format : $(GOIMPORTS)
 		@goimports -w $(shell find . -type f -name '*.go' -not -path "./vendor/*")	
+
+$(GINKGO) :
+		go get -u github.com/onsi/ginkgo/ginkgo
+
+$(GOIMPORTS) :
+	    go get -u golang.org/x/tools/cmd/goimports
 
 LINTER_VERSION=1.16.0
 $(GOLANG_LINTER) :
 		mkdir -p $(GOPATH)/bin
 		curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GOPATH)/bin v${LINTER_VERSION}
 
-$(DEP) :
-		mkdir -p $(GOPATH)/bin
-		curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
-
-lint : $(GOLANG_LINTER)
+lint : depend
 		golangci-lint run --tests=false
 
-unit :
+unit : depend
 		ginkgo -r -keepGoing -randomizeSuites -noisySkippings=false -randomizeAllSpecs $(SUBDIRS_HAS_UNIT) 2>&1
 
-integration :
+integration : depend
 		ginkgo -r -randomizeSuites -noisySkippings=false -randomizeAllSpecs integration 2>&1
 
 test : unit integration
