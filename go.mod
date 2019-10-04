@@ -16,7 +16,7 @@ require (
 	github.com/mattn/go-colorable v0.1.2 // indirect
 	github.com/mattn/go-runewidth v0.0.4 // indirect
 	github.com/nightlyone/lockfile v0.0.0-20180618180623-0ad87eef1443
-	github.com/onsi/ginkgo v1.10.1
+	github.com/onsi/ginkgo v1.10.2
 	github.com/onsi/gomega v1.7.0
 	github.com/pkg/errors v0.8.1
 	github.com/satori/go.uuid v1.2.0 // indirect
@@ -26,8 +26,8 @@ require (
 	github.com/spf13/pflag v1.0.3
 	golang.org/x/crypto v0.0.0-20190829043050-9756ffdc2472 // indirect
 	golang.org/x/net v0.0.0-20190827160401-ba9fcec4b297 // indirect
-	golang.org/x/sys v0.0.0-20191001151750-bb3f8db39f24 // indirect
-	golang.org/x/tools v0.0.0-20191001170858-4414aad16ca7 // indirect
+	golang.org/x/sys v0.0.0-20191003212358-c178f38b412c // indirect
+	golang.org/x/tools v0.0.0-20191001170858-4414aad16ca7
 	google.golang.org/appengine v1.6.4 // indirect
 	gopkg.in/cheggaaa/pb.v1 v1.0.28
 	gopkg.in/yaml.v2 v2.2.3-0.20190319135612-7b8349ac747c

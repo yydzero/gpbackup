@@ -39,10 +39,10 @@ format : $(GOIMPORTS)
 		@goimports -w $(shell find . -type f -name '*.go' -not -path "./vendor/*")	
 
 $(GINKGO) :
-		go get -u github.com/onsi/ginkgo/ginkgo
+		@cd vendor/github.com/onsi/ginkgo/ginkgo; go install .
 
 $(GOIMPORTS) :
-	    go get -u golang.org/x/tools/cmd/goimports
+	    @cd vendor/golang.org/x/tools/cmd/goimports; go install .
 
 LINTER_VERSION=1.16.0
 $(GOLANG_LINTER) :
