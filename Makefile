@@ -33,7 +33,7 @@ CUSTOM_BACKUP_DIR ?= "/tmp"
 .PHONY : coverage integration end_to_end
 
 depend : $(GOLANG_LINTER) $(GINKGO) $(GOIMPORTS)
-		go mod download
+		# go mod download
 
 format : $(GOIMPORTS)
 		@goimports -w $(shell find . -type f -name '*.go' -not -path "./vendor/*")	
