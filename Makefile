@@ -26,18 +26,15 @@ GOIMPORTS=$(GOPATH)/bin/goimports
 CUSTOM_BACKUP_DIR ?= "/tmp"
 helper_path ?= $(BIN_DIR)/$(HELPER)
 
-$(DEP) :
-		mkdir -p $(GOPATH)/bin
-		curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
-
 depend :
-		go mod download
+		# Turning on go modules explicitly allows the project to keep compiling with go 1.12 and older when the project is located in $GOPATH/src
+		GO111MODULE=on go mod download
 
 $(GINKGO) :
-		go get github.com/onsi/ginkgo/ginkgo
+		go install github.com/onsi/ginkgo/ginkgo
 
-$(GOIMPORTS) : depend
-		@cd vendor/golang.org/x/tools/cmd/goimports; go install .
+$(GOIMPORTS) :
+		go install golang.org/x/tools/cmd/goimports
 
 format : $(GOIMPORTS)
 		@goimports -w $(shell find . -type f -name '*.go' -not -path "./vendor/*")
