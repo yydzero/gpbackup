@@ -176,7 +176,7 @@ func getFilterRelationsInBackupSet(relationList []string) []string {
 
 	dataEntries := make([]string, 0)
 	for _, restorePlanEntry := range backupConfig.RestorePlan {
-		dataEntries = append(dataEntries, restorePlanEntry.TableFQNs...)
+		dataEntries = append(dataEntries, restorePlanEntry.ChangedTables...)
 	}
 	for _, fqn := range dataEntries {
 		if _, ok := relationMap[fqn]; ok {

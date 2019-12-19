@@ -135,14 +135,14 @@ var _ = Describe("backup/incremental tests", func() {
 			Specify("That the single entry should have the current backup set FQNs", func() {
 				expectedTableFQNs := []string{"public.ao1", "public.heap1"}
 
-				Expect(restorePlan[0].TableFQNs).To(Equal(expectedTableFQNs))
+				Expect(restorePlan[0].ChangedTables).To(Equal(expectedTableFQNs))
 			})
 		})
 
 		Context("Incremental backup", func() {
 			previousRestorePlan := []backup_history.RestorePlanEntry{
-				{Timestamp: "ts0", TableFQNs: []string{"public.ao1", "public.ao2"}},
-				{Timestamp: "ts1", TableFQNs: []string{"public.heap1"}},
+				{Timestamp: "ts0", ChangedTables: []string{"public.ao1", "public.ao2"}},
+				{Timestamp: "ts1", ChangedTables: []string{"public.heap1"}},
 			}
 			changedTables := []backup.Table{
 				{Relation: backup.Relation{Schema: "public", Name: "ao1"}},
@@ -162,17 +162,17 @@ var _ = Describe("backup/incremental tests", func() {
 				Specify("That the added entry should have the current backup set FQNs", func() {
 					expectedTableFQNs := []string{"public.ao1", "public.heap1"}
 
-					Expect(restorePlan[2].TableFQNs).To(Equal(expectedTableFQNs))
+					Expect(restorePlan[2].ChangedTables).To(Equal(expectedTableFQNs))
 				})
 
 				Specify("That the previous timestamp entries should NOT have the current backup set FQNs", func() {
 					expectedTableFQNs := []string{"public.ao1", "public.heap1"}
 
-					Expect(restorePlan[0].TableFQNs).To(Not(ContainElement(expectedTableFQNs[0])))
-					Expect(restorePlan[0].TableFQNs).To(Not(ContainElement(expectedTableFQNs[1])))
+					Expect(restorePlan[0].ChangedTables).To(Not(ContainElement(expectedTableFQNs[0])))
+					Expect(restorePlan[0].ChangedTables).To(Not(ContainElement(expectedTableFQNs[1])))
 
-					Expect(restorePlan[1].TableFQNs).To(Not(ContainElement(expectedTableFQNs[0])))
-					Expect(restorePlan[1].TableFQNs).To(Not(ContainElement(expectedTableFQNs[1])))
+					Expect(restorePlan[1].ChangedTables).To(Not(ContainElement(expectedTableFQNs[0])))
+					Expect(restorePlan[1].ChangedTables).To(Not(ContainElement(expectedTableFQNs[1])))
 				})
 
 			})
@@ -184,12 +184,12 @@ var _ = Describe("backup/incremental tests", func() {
 				restorePlan := backup.PopulateRestorePlan(changedTables[0:1], previousRestorePlan, allTables)
 
 				Specify("That the added entry should NOT have the dropped table FQN", func() {
-					Expect(restorePlan[2].TableFQNs).To(Not(ContainElement(excludedTableFQN)))
+					Expect(restorePlan[2].ChangedTables).To(Not(ContainElement(excludedTableFQN)))
 				})
 
 				Specify("That the previous timestamp entries should NOT have the dropped table FQN", func() {
-					Expect(restorePlan[0].TableFQNs).To(Not(ContainElement(excludedTableFQN)))
-					Expect(restorePlan[1].TableFQNs).To(Not(ContainElement(excludedTableFQN)))
+					Expect(restorePlan[0].ChangedTables).To(Not(ContainElement(excludedTableFQN)))
+					Expect(restorePlan[1].ChangedTables).To(Not(ContainElement(excludedTableFQN)))
 				})
 
 			})

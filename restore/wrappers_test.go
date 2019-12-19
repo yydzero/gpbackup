@@ -119,7 +119,7 @@ var _ = Describe("wrapper tests", func() {
 		})
 
 		Specify("That the restore plan entry should have all table FQNs as in the TOC's DataEntries", func() {
-			Expect(legacyBackupConfig.RestorePlan[0].TableFQNs).
+			Expect(legacyBackupConfig.RestorePlan[0].ChangedTables).
 				To(Equal([]string{"schema1.table1", "schema2.table2"}))
 		})
 

@@ -176,7 +176,7 @@ func SetRestorePlanForLegacyBackup(toc *utils.TOC, backupTimestamp string, backu
 		tableFQNs = append(tableFQNs, entryFQN)
 	}
 	backupConfig.RestorePlan = []backup_history.RestorePlanEntry{
-		{Timestamp: backupTimestamp, TableFQNs: tableFQNs},
+		{Timestamp: backupTimestamp, ChangedTables: tableFQNs},
 	}
 }
 

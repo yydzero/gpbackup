@@ -250,12 +250,12 @@ var _ = Describe("restore/validate tests", func() {
 			restore.ValidateIncludeRelationsInBackupSet(filterList)
 		})
 		It("passes when table exists in most recent restore plan entry", func() {
-			restore.SetBackupConfig(&backup_history.BackupConfig{RestorePlan: []backup_history.RestorePlanEntry{{TableFQNs: []string{"schema1.table1_part_1"}}}})
+			restore.SetBackupConfig(&backup_history.BackupConfig{RestorePlan: []backup_history.RestorePlanEntry{{ChangedTables: []string{"schema1.table1_part_1"}}}})
 			filterList = []string{"schema1.table1_part_1"}
 			restore.ValidateIncludeRelationsInBackupSet(filterList)
 		})
 		It("passes when table exists in previous restore plan entry", func() {
-			restore.SetBackupConfig(&backup_history.BackupConfig{RestorePlan: []backup_history.RestorePlanEntry{{TableFQNs: []string{"schema1.random_table"}}, {TableFQNs: []string{"schema1.table1_part_1"}}}})
+			restore.SetBackupConfig(&backup_history.BackupConfig{RestorePlan: []backup_history.RestorePlanEntry{{ChangedTables: []string{"schema1.random_table"}}, {ChangedTables: []string{"schema1.table1_part_1"}}}})
 			filterList = []string{"schema1.table1_part_1"}
 			restore.ValidateIncludeRelationsInBackupSet(filterList)
 		})

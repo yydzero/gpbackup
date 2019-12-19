@@ -207,7 +207,7 @@ func restorePredata(metadataFilename string) {
 
 	if MustGetFlagBool(utils.INCREMENTAL) {
 		lastRestorePlanEntry := backupConfig.RestorePlan[len(backupConfig.RestorePlan)-1]
-		tableFQNsToRestore := lastRestorePlanEntry.TableFQNs
+		tableFQNsToRestore := lastRestorePlanEntry.ChangedTables
 
 		existingSchemas, err := GetExistingSchemas()
 		gplog.FatalOnError(err)
@@ -262,7 +262,7 @@ func restorePredata(metadataFilename string) {
 		inRelations = inRelationsUserInput
 		exRelations = exRelationsUserInput
 	}
-	
+
 	filters := NewFilters(inSchemas, exSchemas, inRelations, exRelations)
 	schemaStatements := GetRestoreMetadataStatementsFiltered("predata", metadataFilename, []string{"SCHEMA"}, []string{}, filters)
 	statements := GetRestoreMetadataStatementsFiltered("predata", metadataFilename, []string{}, []string{"SCHEMA"}, filters)
@@ -301,7 +301,7 @@ func restoreData() {
 	for _, entry := range restorePlanEntries {
 		fpInfo := GetBackupFPInfoForTimestamp(entry.Timestamp)
 		toc := utils.NewTOC(fpInfo.GetTOCFilePath())
-		restorePlanTableFQNs := entry.TableFQNs
+		restorePlanTableFQNs := entry.ChangedTables
 		filteredDataEntriesForTimestamp := toc.GetDataEntriesMatching(MustGetFlagStringSlice(utils.INCLUDE_SCHEMA),
 			MustGetFlagStringSlice(utils.EXCLUDE_SCHEMA), utils.MustGetFlagStringSlice(cmdFlags, utils.INCLUDE_RELATION),
 			MustGetFlagStringSlice(utils.EXCLUDE_RELATION), restorePlanTableFQNs)

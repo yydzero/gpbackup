@@ -14,8 +14,9 @@ import (
 )
 
 type RestorePlanEntry struct {
-	Timestamp string
-	TableFQNs []string
+	Timestamp     string
+	ChangedTables []string
+	DroppedTables []string
 }
 
 type BackupConfig struct {
