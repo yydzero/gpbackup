@@ -207,7 +207,10 @@ func restorePredata(metadataFilename string) {
 
 	if MustGetFlagBool(utils.INCREMENTAL) {
 		lastRestorePlanEntry := backupConfig.RestorePlan[len(backupConfig.RestorePlan)-1]
-		tableFQNsToRestore := lastRestorePlanEntry.ChangedTables
+		tablesToRestore := lastRestorePlanEntry.ChangedTables
+		tablesToDrop := lastRestorePlanEntry.DroppedTables
+
+		DropTables(tablesToDrop)
 
 		existingSchemas, err := GetExistingSchemas()
 		gplog.FatalOnError(err)
@@ -223,7 +226,7 @@ func restorePredata(metadataFilename string) {
 		var tableFQNsToCreate [] string
 		var schemasExcludedByUserInput [] string
 		var tablesExcludedByUserInput [] string
-		for _, table := range tableFQNsToRestore {
+		for _, table := range tablesToRestore {
 			schemaName := strings.Split(table,".")[0]
 			if utils.SchemaIsExcludedByUser(inSchemasUserInput, exSchemasUserInput,schemaName){
 				if !utils.Exists(schemasExcludedByUserInput, schemaName) {

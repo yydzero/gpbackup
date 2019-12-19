@@ -81,7 +81,6 @@ func MatchesIncrementalFlags(backupConfig *backup_history.BackupConfig, currentB
 
 func PopulateRestorePlan(changedTables []Table,
 	previousRestorePlan []backup_history.RestorePlanEntry, allTables []Table) []backup_history.RestorePlanEntry{
-
 	restorePlan := make([]backup_history.RestorePlanEntry, len(previousRestorePlan))
 
 	currBackupRestorePlanEntry := backup_history.RestorePlanEntry{

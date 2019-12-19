@@ -378,6 +378,15 @@ func GetExistingSchemas()([]string, error){
 	return existingSchemas, err
 }
 
+func DropTables(tables []string ) error {
+	query := `DROP TABLE IF EXISTS `
+	query += strings.Join(tables, ",")
+	query += " CASCADE;"
+	gplog.Info("QUERY TO DROP: %s", query)
+	_, err := connectionPool.Exec(query)
+	return err
+}
+
 func TruncateTablesBeforeRestore(entries []utils.MasterDataEntry) error {
 	query := `TRUNCATE `
 	tableFQNs := make([]string, 0)
