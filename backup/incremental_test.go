@@ -141,8 +141,13 @@ var _ = Describe("backup/incremental tests", func() {
 
 		Context("Incremental backup", func() {
 			previousRestorePlan := []backup_history.RestorePlanEntry{
-				{Timestamp: "ts0", ChangedTables: []string{"public.ao1", "public.ao2"}},
-				{Timestamp: "ts1", ChangedTables: []string{"public.heap1"}},
+				{Timestamp: "ts0", ChangedTables: []string{"public.ao1", "public.ao2"}, DroppedTables: []string{}},
+				{Timestamp: "ts1", ChangedTables: []string{"public.heap1"}, DroppedTables: []string{}},
+			}
+			allTables := []backup.Table{
+				{Relation: backup.Relation{Schema: "public", Name: "ao1"}},
+				{Relation: backup.Relation{Schema: "public", Name: "ao2"}},
+				{Relation: backup.Relation{Schema: "public", Name: "heap1"}},
 			}
 			changedTables := []backup.Table{
 				{Relation: backup.Relation{Schema: "public", Name: "ao1"}},
@@ -150,18 +155,14 @@ var _ = Describe("backup/incremental tests", func() {
 			}
 
 			Context("Incremental backup with no table drops in between", func() {
-				allTables := changedTables
-
 				restorePlan := backup.PopulateRestorePlan(changedTables, previousRestorePlan, allTables)
 
 				It("should append 1 more entry to the previous restore plan", func() {
-					Expect(restorePlan[0:2]).To(Equal(previousRestorePlan[0:2]))
 					Expect(restorePlan).To(HaveLen(len(previousRestorePlan) + 1))
 				})
 
 				Specify("That the added entry should have the current backup set FQNs", func() {
 					expectedTableFQNs := []string{"public.ao1", "public.heap1"}
-
 					Expect(restorePlan[2].ChangedTables).To(Equal(expectedTableFQNs))
 				})
 
@@ -174,17 +175,20 @@ var _ = Describe("backup/incremental tests", func() {
 					Expect(restorePlan[1].ChangedTables).To(Not(ContainElement(expectedTableFQNs[0])))
 					Expect(restorePlan[1].ChangedTables).To(Not(ContainElement(expectedTableFQNs[1])))
 				})
-
 			})
 
 			Context("A table was dropped between the last full/incremental and this incremental", func() {
-				allTables := changedTables[0:1] // exclude "heap1"
+				allTables := allTables[0:1] // exclude "heap1"
 				excludedTableFQN := "public.heap1"
 
 				restorePlan := backup.PopulateRestorePlan(changedTables[0:1], previousRestorePlan, allTables)
 
 				Specify("That the added entry should NOT have the dropped table FQN", func() {
 					Expect(restorePlan[2].ChangedTables).To(Not(ContainElement(excludedTableFQN)))
+				})
+
+				Specify("That the added entry should have the dropped table FQN in DroppedTables section", func() {
+					Expect(restorePlan[2].DroppedTables).To(ContainElement(excludedTableFQN))
 				})
 
 				Specify("That the previous timestamp entries should NOT have the dropped table FQN", func() {

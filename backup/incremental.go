@@ -80,7 +80,10 @@ func MatchesIncrementalFlags(backupConfig *backup_history.BackupConfig, currentB
 }
 
 func PopulateRestorePlan(changedTables []Table,
-	restorePlan []backup_history.RestorePlanEntry, allTables []Table) []backup_history.RestorePlanEntry {
+	previousRestorePlan []backup_history.RestorePlanEntry, allTables []Table) []backup_history.RestorePlanEntry{
+
+	restorePlan := make([]backup_history.RestorePlanEntry, len(previousRestorePlan))
+
 	currBackupRestorePlanEntry := backup_history.RestorePlanEntry{
 		Timestamp:     globalFPInfo.Timestamp,
 		ChangedTables: make([]string, 0, len(changedTables)),
@@ -104,18 +107,20 @@ func PopulateRestorePlan(changedTables []Table,
 	}
 
 	// Removing filtered table FQNs for the current backup from entries with previous timestamps
-	for i, restorePlanEntry := range restorePlan {
+	for i, restorePlanEntry := range previousRestorePlan {
 		tableFQNs := make([]string, 0)
 		for _, tableFQN := range restorePlanEntry.ChangedTables {
 			if !changedTableFQNs[tableFQN] {
-				if(allTableFQNs[tableFQN]){
+				if allTableFQNs[tableFQN] {
 					tableFQNs = append(tableFQNs, tableFQN)
-				} else {
+				} else { // table was dropped
 					currBackupRestorePlanEntry.DroppedTables = append(currBackupRestorePlanEntry.DroppedTables, tableFQN)
 				}
 			}
 		}
+		restorePlan[i].Timestamp = previousRestorePlan[i].Timestamp
 		restorePlan[i].ChangedTables = tableFQNs
+		restorePlan[i].DroppedTables = previousRestorePlan[i].DroppedTables
 	}
 	restorePlan = append(restorePlan, currBackupRestorePlanEntry)
 

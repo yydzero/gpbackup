@@ -184,16 +184,16 @@ func DoBackup() {
 	if !backupReport.MetadataOnly {
 		backupSetTables := dataTables
 
-		targetBackupRestorePlan := make([]backup_history.RestorePlanEntry, 0)
+		previousRestorePlan := make([]backup_history.RestorePlanEntry, 0)
 		if targetBackupTimestamp != "" {
 			gplog.Info("Basing incremental backup off of backup with timestamp = %s", targetBackupTimestamp)
 
 			targetBackupTOC := utils.NewTOC(targetBackupFPInfo.GetTOCFilePath())
-			targetBackupRestorePlan = backup_history.ReadConfigFile(targetBackupFPInfo.GetConfigFilePath()).RestorePlan
+			previousRestorePlan = backup_history.ReadConfigFile(targetBackupFPInfo.GetConfigFilePath()).RestorePlan
 			backupSetTables = FilterTablesForIncremental(targetBackupTOC, globalTOC, dataTables)
 		}
 
-		backupReport.RestorePlan = PopulateRestorePlan(backupSetTables, targetBackupRestorePlan, dataTables)
+		backupReport.RestorePlan = PopulateRestorePlan(backupSetTables, previousRestorePlan, dataTables)
 
 		backupData(backupSetTables)
 	}
