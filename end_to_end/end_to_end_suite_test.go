@@ -131,10 +131,18 @@ func assertRelationsCreated(conn *dbconn.DBConn, expectedNumTables int) {
 }
 
 func assertRelationsExistForIncremantal(conn *dbconn.DBConn, expectedNumTables int) {
-	countQuery := `SELECT count(*) AS string FROM pg_class c LEFT JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relkind IN ('S','v','r') AND n.nspname IN ('old_schema', 'new_schema');`
+	countQuery := `SELECT count(*) AS string FROM pg_class c LEFT JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relkind IN ('S','v','r') AND n.nspname IN ('old_schema', 'new_schema', 'ddl_schema');`
 	actualTableCount := dbconn.MustSelectString(conn, countQuery)
 	if strconv.Itoa(expectedNumTables) != actualTableCount {
 		Fail(fmt.Sprintf("Expected:\n\t%s relations to exist in old_schema and new_schema\nActual:\n\t%s relations are present", strconv.Itoa(expectedNumTables), actualTableCount))
+	}
+}
+
+func assertRelationNotExists(conn *dbconn.DBConn, schema string, table string){
+	query := fmt.Sprintf("SELECT EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = '%s' AND tablename = '%s');", schema, table)
+	result := dbconn.MustSelectString(conn, query)
+	if result != "false" {
+		Fail(fmt.Sprintf("Expected relation %s.%s not to exist in the database, actual - relation exists\n", schema, table))
 	}
 }
 
@@ -1108,6 +1116,50 @@ var _ = Describe("backup end to end integration tests", func() {
 						assertDataRestored(restoreConn, newSchemaTupleCounts)
 					})
 				})
+			})
+			Context("DDL changes - table was dropped", func(){
+				ddlSchemaTupleCounts := map[string]int{}
+
+				BeforeEach(func() {
+					testhelper.AssertQueryRuns(backupConn, "DROP SCHEMA IF EXISTS ddl_schema CASCADE; CREATE SCHEMA ddl_schema;")
+					testhelper.AssertQueryRuns(backupConn, "CREATE TABLE ddl_schema.table1 (mydata int) WITH (appendonly=true) DISTRIBUTED BY (mydata);")
+					testhelper.AssertQueryRuns(backupConn, "CREATE TABLE ddl_schema.table2 (mydata int) WITH (appendonly=true) DISTRIBUTED BY (mydata);")
+					testhelper.AssertQueryRuns(backupConn, "CREATE TABLE ddl_schema.table3 (mydata int) WITH (appendonly=true) DISTRIBUTED BY (mydata);")
+					testhelper.AssertQueryRuns(backupConn, "INSERT INTO ddl_schema.table1 SELECT generate_series(1, 5);")
+					testhelper.AssertQueryRuns(backupConn, "INSERT INTO ddl_schema.table2 SELECT generate_series(1, 10);")
+					testhelper.AssertQueryRuns(backupConn, "INSERT INTO ddl_schema.table3 SELECT generate_series(1, 15);")
+					newSchemaTupleCounts = map[string]int{
+					}
+					baseTimestamp := gpbackup(gpbackupPath, backupHelperPath, "--leaf-partition-data")
+
+					ddlSchemaTupleCounts = map[string]int{
+						"ddl_schema.table1": 5,
+						"ddl_schema.table2": 10,
+						"ddl_schema.table3": 15,
+					}
+
+					testhelper.AssertQueryRuns(restoreConn, "DROP SCHEMA IF EXISTS ddl_schema CASCADE;")
+					gprestore(gprestorePath, restoreHelperPath, baseTimestamp, "--redirect-db", "restoredb")
+				})
+				AfterEach(func() {
+					testhelper.AssertQueryRuns(backupConn, "DROP SCHEMA IF EXISTS ddl_schema CASCADE;")
+					testhelper.AssertQueryRuns(restoreConn, "DROP SCHEMA IF EXISTS ddl_schema CASCADE;")
+				})
+				It("Drops tables that were dropped before last backup", func(){
+					testhelper.AssertQueryRuns(backupConn, "DROP TABLE ddl_schema.table1;")
+					testhelper.AssertQueryRuns(backupConn, "DROP TABLE ddl_schema.table2;")
+					ddlSchemaTupleCounts = map[string]int{
+						"ddl_schema.table3": 15,
+					}
+					timestamp := gpbackup(gpbackupPath, backupHelperPath, "--leaf-partition-data", "--incremental")
+					gprestore(gprestorePath, restoreHelperPath, timestamp, "--incremental", "--redirect-db", "restoredb")
+					assertSchemasExist(restoreConn, 4)
+					assertRelationsExistForIncremantal(restoreConn, 1)
+					assertRelationNotExists(restoreConn, "ddl_schema", "table1")
+					assertRelationNotExists(restoreConn, "ddl_schema", "table2")
+					assertDataRestored(restoreConn, ddlSchemaTupleCounts)
+				})
+
 			})
 		})
 		Describe("globals tests", func() {

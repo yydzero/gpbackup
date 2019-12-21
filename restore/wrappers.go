@@ -25,29 +25,6 @@ import (
  * Setup and validation wrapper functions
  */
 
-/*
- * Filter structure to filter schemas and relations
- */
-type Filters struct {
-	includeSchemas []string
-	excludeSchemas []string
-	includeRelations []string
-	excludeRelations []string
-}
-
-func NewFilters(inSchema []string, exSchemas []string, inRelations []string, exRelations []string) Filters {
-	f := Filters{}
-	f.includeSchemas = inSchema
-	f.excludeSchemas = exSchemas
-	f.includeRelations = inRelations
-	f.excludeRelations  = exRelations
-	return f
-}
-
-func filtersEmpty(filters Filters) bool {
-	return len(filters.includeSchemas) == 0 && len(filters.excludeSchemas) == 0 && len(filters.includeRelations) == 0 && len(filters.excludeRelations) == 0
-}
-
 func SetLoggerVerbosity() {
 	if MustGetFlagBool(utils.QUIET) {
 		gplog.SetVerbosity(gplog.LOGERROR)
@@ -247,21 +224,87 @@ func FindHistoricalPluginVersion(timestamp string) string {
  * Metadata and/or data restore wrapper functions
  */
 
+func GetUserFilters() utils.Filters {
+	filters := utils.NewFilters(
+		MustGetFlagStringSlice(utils.INCLUDE_SCHEMA),
+		MustGetFlagStringSlice(utils.EXCLUDE_SCHEMA),
+		MustGetFlagStringSlice(utils.INCLUDE_RELATION),
+		MustGetFlagStringSlice(utils.EXCLUDE_RELATION))
+	return filters
+}
+
+func BuildRestoreMetadataFilters(relationsToRestore []string) utils.Filters {
+	userFilters := GetUserFilters()
+
+	var schemasToCreate [] string
+	var relationsToCreate [] string
+	var schemasExcludedByUserInput [] string
+	var relationsExcludedByUserInput [] string
+	var inSchemas, exSchemas, inRelations, exRelations [] string
+
+	existingSchemas, err := GetExistingSchemas()
+	gplog.FatalOnError(err)
+	existingTableFQNs, err := GetExistingTableFQNs()
+	gplog.FatalOnError(err)
+
+	existingTablesMap := make(map[string]Empty)
+	for _, table := range existingTableFQNs{
+		existingTablesMap[table] = Empty{}
+	}
+
+	for _, table := range relationsToRestore {
+		schemaName := strings.Split(table,".")[0]
+		if utils.SchemaIsExcluded(userFilters.IncludeSchemas, userFilters.ExcludeSchemas, schemaName){
+			if !utils.Exists(schemasExcludedByUserInput, schemaName) {
+				schemasExcludedByUserInput = append(schemasExcludedByUserInput, schemaName)
+			}
+			relationsExcludedByUserInput = append(relationsExcludedByUserInput, table)
+			continue
+		}
+
+		if _, exists := existingTablesMap[table]; !exists {
+			if utils.RelationIsExcluded(userFilters.IncludeRelations, userFilters.ExcludeRelations, table) {
+				relationsExcludedByUserInput = append(relationsExcludedByUserInput, table)
+			} else {
+				if!utils.Exists(schemasToCreate, schemaName){
+					schemasToCreate = append(schemasToCreate, schemaName)
+				}
+				relationsToCreate = append(relationsToCreate, table)
+			}
+		}
+	}
+
+	if len(schemasToCreate) == 0 { // no new schemas
+		exSchemas = append(existingSchemas, schemasExcludedByUserInput...)
+	} else {
+		inSchemas = schemasToCreate
+	}
+
+	if len(relationsToCreate) == 0 { // no new tables
+		exRelations = append(existingTableFQNs, relationsExcludedByUserInput...)
+	} else {
+		inRelations = relationsToCreate
+	}
+
+	filters := utils.NewFilters(inSchemas, exSchemas, inRelations, exRelations)
+	return filters
+}
+
 func GetRestoreMetadataStatements(section string, filename string, includeObjectTypes []string, excludeObjectTypes []string) []utils.StatementWithType {
 	var statements []utils.StatementWithType
-	statements = GetRestoreMetadataStatementsFiltered(section, filename, includeObjectTypes, excludeObjectTypes, Filters{})
+	statements = GetRestoreMetadataStatementsFiltered(section, filename, includeObjectTypes, excludeObjectTypes, utils.Filters{})
 	return statements
 }
 
-func GetRestoreMetadataStatementsFiltered(section string, filename string, includeObjectTypes []string, excludeObjectTypes []string, filters Filters) []utils.StatementWithType {
+func GetRestoreMetadataStatementsFiltered(section string, filename string, includeObjectTypes []string, excludeObjectTypes []string, filters utils.Filters) []utils.StatementWithType {
 	metadataFile := iohelper.MustOpenFileForReading(filename)
 	var statements []utils.StatementWithType
 	var inSchemas, exSchemas, inRelations, exRelations []string
-	if !filtersEmpty(filters)  {
-		inSchemas = filters.includeSchemas
-		exSchemas = filters.excludeSchemas
-		inRelations = filters.includeRelations
-		exRelations = filters.excludeRelations
+	if !utils.FiltersEmpty(filters)  {
+		inSchemas = filters.IncludeSchemas
+		exSchemas = filters.ExcludeSchemas
+		inRelations = filters.IncludeRelations
+		exRelations = filters.ExcludeRelations
 		fpInfoList := GetBackupFPInfoListFromRestorePlan()
 		for _, fpInfo := range fpInfoList {
 			tocFilename := fpInfo.GetTOCFilePath()
@@ -378,7 +421,7 @@ func GetExistingSchemas()([]string, error){
 	return existingSchemas, err
 }
 
-func DropTables(tables []string ) error {
+func DropRelations(tables []string) error {
 	query := `DROP TABLE IF EXISTS `
 	query += strings.Join(tables, ",")
 	query += " CASCADE;"

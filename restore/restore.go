@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"runtime/debug"
-	"strings"
 	"sync"
 
 	"github.com/greenplum-db/gp-common-go-libs/cluster"
@@ -199,74 +198,19 @@ func restorePredata(metadataFilename string) {
 	}
 	gplog.Info("Restoring pre-data metadata")
 
-	var inSchemas, exSchemas, inRelations, exRelations []string
-	inSchemasUserInput := MustGetFlagStringSlice(utils.INCLUDE_SCHEMA)
-	exSchemasUserInput := MustGetFlagStringSlice(utils.EXCLUDE_SCHEMA)
-	inRelationsUserInput := MustGetFlagStringSlice(utils.INCLUDE_RELATION)
-	exRelationsUserInput := MustGetFlagStringSlice(utils.EXCLUDE_RELATION)
-
+	var filters utils.Filters
 	if MustGetFlagBool(utils.INCREMENTAL) {
 		lastRestorePlanEntry := backupConfig.RestorePlan[len(backupConfig.RestorePlan)-1]
-		tablesToRestore := lastRestorePlanEntry.ChangedTables
-		tablesToDrop := lastRestorePlanEntry.DroppedTables
 
-		DropTables(tablesToDrop)
+		relationsToRestore := lastRestorePlanEntry.ChangedTables
+		filters = BuildRestoreMetadataFilters(relationsToRestore)
 
-		existingSchemas, err := GetExistingSchemas()
-		gplog.FatalOnError(err)
-        existingTableFQNs, err := GetExistingTableFQNs()
-		gplog.FatalOnError(err)
-
-		existingTablesMap := make(map[string]Empty)
-		for _, table := range existingTableFQNs{
-			existingTablesMap[table] = Empty{}
-		}
-
-		var schemasToCreate [] string
-		var tableFQNsToCreate [] string
-		var schemasExcludedByUserInput [] string
-		var tablesExcludedByUserInput [] string
-		for _, table := range tablesToRestore {
-			schemaName := strings.Split(table,".")[0]
-			if utils.SchemaIsExcludedByUser(inSchemasUserInput, exSchemasUserInput,schemaName){
-				if !utils.Exists(schemasExcludedByUserInput, schemaName) {
-					schemasExcludedByUserInput = append(schemasExcludedByUserInput, schemaName)
-				}
-				tablesExcludedByUserInput = append(tablesExcludedByUserInput, table)
-				continue
-			}
-
-			if _, exists := existingTablesMap[table]; !exists {
-				if utils.RelationIsExcludedByUser(inRelationsUserInput, exRelationsUserInput, table) {
-					tablesExcludedByUserInput = append(tablesExcludedByUserInput, table)
-				} else {
-					if!utils.Exists(schemasToCreate, schemaName){
-						schemasToCreate = append(schemasToCreate, schemaName)
-					}
-					tableFQNsToCreate = append(tableFQNsToCreate, table)
-				}
-			}
-		}
-
-		if len(schemasToCreate) == 0 { // no new schemas
-			exSchemas = append(existingSchemas, schemasExcludedByUserInput...)
-		} else {
-			inSchemas = schemasToCreate
-		}
-
-		if len(tableFQNsToCreate) == 0 { // no new tables
-			exRelations = append(existingTableFQNs, tablesExcludedByUserInput...)
-		} else {
-			inRelations = tableFQNsToCreate
-		}
-	} else { // if not incremental restore - assume database is empty and just filter based on user input
-		inSchemas = inSchemasUserInput
-		exSchemas = exSchemasUserInput
-		inRelations = inRelationsUserInput
-		exRelations = exRelationsUserInput
+		relationsToDrop := utils.FilterRelations(lastRestorePlanEntry.DroppedTables, GetUserFilters())
+		DropRelations(relationsToDrop)
+	} else {
+		filters = GetUserFilters()
 	}
 
-	filters := NewFilters(inSchemas, exSchemas, inRelations, exRelations)
 	schemaStatements := GetRestoreMetadataStatementsFiltered("predata", metadataFilename, []string{"SCHEMA"}, []string{}, filters)
 	statements := GetRestoreMetadataStatementsFiltered("predata", metadataFilename, []string{}, []string{"SCHEMA"}, filters)
 
@@ -337,11 +281,7 @@ func restorePostdata(metadataFilename string) {
 	}
 	gplog.Info("Restoring post-data metadata")
 
-	inSchemas := MustGetFlagStringSlice(utils.INCLUDE_SCHEMA)
-	exSchemas := MustGetFlagStringSlice(utils.EXCLUDE_SCHEMA)
-	inRelations := MustGetFlagStringSlice(utils.INCLUDE_RELATION)
-	exRelations := MustGetFlagStringSlice(utils.EXCLUDE_RELATION)
-	filters := NewFilters(inSchemas, exSchemas, inRelations, exRelations)
+	filters := GetUserFilters()
 
 	statements := GetRestoreMetadataStatementsFiltered("postdata", metadataFilename, []string{}, []string{}, filters)
 	firstBatch, secondBatch := BatchPostdataStatements(statements)
@@ -364,11 +304,7 @@ func restoreStatistics() {
 	statisticsFilename := globalFPInfo.GetStatisticsFilePath()
 	gplog.Info("Restoring query planner statistics from %s", statisticsFilename)
 
-	inSchemas := MustGetFlagStringSlice(utils.INCLUDE_SCHEMA)
-	exSchemas := MustGetFlagStringSlice(utils.EXCLUDE_SCHEMA)
-	inRelations := MustGetFlagStringSlice(utils.INCLUDE_RELATION)
-	exRelations := MustGetFlagStringSlice(utils.EXCLUDE_RELATION)
-	filters := NewFilters(inSchemas, exSchemas, inRelations, exRelations)
+	filters := GetUserFilters()
 
 	statements := GetRestoreMetadataStatementsFiltered("statistics", statisticsFilename, []string{}, []string{}, filters)
 	ExecuteRestoreMetadataStatements(statements, "Table statistics", nil, utils.PB_VERBOSE, false)
