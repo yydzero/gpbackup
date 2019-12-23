@@ -1,6 +1,8 @@
 package utils
 
-import "strings"
+import (
+	"strings"
+)
 
 /*
  * Filter structure to filter schemas and relations
@@ -44,11 +46,10 @@ func FilterRelations(relations []string, filters Filters) []string {
 	for _, relation := range relations {
 		schemaName := strings.Split(relation,".")[0]
 		if RelationIsExcluded(filters.IncludeRelations, filters.ExcludeRelations, relation) ||
-		   SchemaIsExcluded(filters.IncludeSchemas, filters.IncludeSchemas, schemaName){
+		   SchemaIsExcluded(filters.IncludeSchemas, filters.ExcludeSchemas, schemaName){
 			continue
 		}
 		relationsFiltered = append(relationsFiltered, relation)
 	}
-
 	return relationsFiltered
 }

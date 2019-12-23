@@ -134,7 +134,15 @@ func assertRelationsExistForIncremantal(conn *dbconn.DBConn, expectedNumTables i
 	countQuery := `SELECT count(*) AS string FROM pg_class c LEFT JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relkind IN ('S','v','r') AND n.nspname IN ('old_schema', 'new_schema', 'ddl_schema');`
 	actualTableCount := dbconn.MustSelectString(conn, countQuery)
 	if strconv.Itoa(expectedNumTables) != actualTableCount {
-		Fail(fmt.Sprintf("Expected:\n\t%s relations to exist in old_schema and new_schema\nActual:\n\t%s relations are present", strconv.Itoa(expectedNumTables), actualTableCount))
+		Fail(fmt.Sprintf("Expected:\n\t%s relations to exist in old_schema, new_schema and ddl_schema\nActual:\n\t%s relations are present", strconv.Itoa(expectedNumTables), actualTableCount))
+	}
+}
+
+func assertRelationExists(conn *dbconn.DBConn, schema string, table string){
+	query := fmt.Sprintf("SELECT EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = '%s' AND tablename = '%s');", schema, table)
+	result := dbconn.MustSelectString(conn, query)
+	if result != "true" {
+		Fail(fmt.Sprintf("Expected relation %s.%s to exist in the database, actual - relation does not exist\n", schema, table))
 	}
 }
 
@@ -1159,7 +1167,48 @@ var _ = Describe("backup end to end integration tests", func() {
 					assertRelationNotExists(restoreConn, "ddl_schema", "table2")
 					assertDataRestored(restoreConn, ddlSchemaTupleCounts)
 				})
-
+				It("Does not drop tables excluded by use if --exclude-table flag is provided", func(){
+					testhelper.AssertQueryRuns(backupConn, "DROP TABLE ddl_schema.table1;")
+					testhelper.AssertQueryRuns(backupConn, "DROP TABLE ddl_schema.table2;")
+					timestamp := gpbackup(gpbackupPath, backupHelperPath, "--leaf-partition-data", "--incremental")
+					gprestore(gprestorePath, restoreHelperPath, timestamp, "--incremental", "--redirect-db", "restoredb", "--exclude-table", "ddl_schema.table1")
+					ddlSchemaTupleCounts = map[string]int{
+						"ddl_schema.table1": 5,
+						"ddl_schema.table3": 15,
+					}
+					assertSchemasExist(restoreConn, 4)
+					assertRelationsExistForIncremantal(restoreConn, 2)
+					assertRelationExists(restoreConn, "ddl_schema", "table1")
+					assertRelationNotExists(restoreConn, "ddl_schema", "table2")
+					assertDataRestored(restoreConn, ddlSchemaTupleCounts)
+				})
+				It("Does not drop tables excluded by use if --exclude-schema flag is provided", func(){
+					testhelper.AssertQueryRuns(backupConn, "DROP TABLE ddl_schema.table1;")
+					testhelper.AssertQueryRuns(backupConn, "DROP TABLE ddl_schema.table2;")
+					timestamp := gpbackup(gpbackupPath, backupHelperPath, "--leaf-partition-data", "--incremental")
+					gprestore(gprestorePath, restoreHelperPath, timestamp, "--incremental", "--redirect-db", "restoredb", "--exclude-schema", "ddl_schema")
+					assertSchemasExist(restoreConn, 4)
+					assertRelationsExistForIncremantal(restoreConn, 3)
+					assertDataRestored(restoreConn, ddlSchemaTupleCounts)
+				})
+				It("Does not drop tables not explicitly included by use if --include-table flag is provided", func(){
+					testhelper.AssertQueryRuns(backupConn, "DROP TABLE ddl_schema.table1;")
+					testhelper.AssertQueryRuns(backupConn, "DROP TABLE ddl_schema.table2;")
+					timestamp := gpbackup(gpbackupPath, backupHelperPath, "--leaf-partition-data", "--incremental")
+					gprestore(gprestorePath, restoreHelperPath, timestamp, "--incremental", "--redirect-db", "restoredb", "--include-table", "ddl_schema.table3")
+					assertSchemasExist(restoreConn, 4)
+					assertRelationsExistForIncremantal(restoreConn, 3)
+					assertDataRestored(restoreConn, ddlSchemaTupleCounts)
+				})
+				It("Does not drop tables not explicitly included by use if --include-schema flag is provided", func(){
+					testhelper.AssertQueryRuns(backupConn, "DROP TABLE ddl_schema.table1;")
+					testhelper.AssertQueryRuns(backupConn, "DROP TABLE ddl_schema.table2;")
+					timestamp := gpbackup(gpbackupPath, backupHelperPath, "--leaf-partition-data", "--incremental")
+					gprestore(gprestorePath, restoreHelperPath, timestamp, "--incremental", "--redirect-db", "restoredb", "--include-schema", "public")
+					assertSchemasExist(restoreConn, 4)
+					assertRelationsExistForIncremantal(restoreConn, 3)
+					assertDataRestored(restoreConn, ddlSchemaTupleCounts)
+				})
 			})
 		})
 		Describe("globals tests", func() {
