@@ -141,7 +141,7 @@ func BackupConfigurationValidation() {
 		VerifyBackupDirectoriesExistOnAllHosts()
 	}
 
-	VerifyMetadataFilePaths(MustGetFlagBool(options.WITH_STATS))
+	VerifyMetadataFilePaths(opts.WithStats)
 
 	tocFilename := globalFPInfo.GetTOCFilePath()
 	globalTOC = toc.NewTOC(tocFilename)
@@ -189,7 +189,7 @@ func RecoverMetadataFilesUsingPlugin() {
 
 	metadataFiles := []string{globalFPInfo.GetConfigFilePath(), globalFPInfo.GetMetadataFilePath(),
 		globalFPInfo.GetBackupReportFilePath()}
-	if MustGetFlagBool(options.WITH_STATS) {
+	if opts.WithStats {
 		metadataFiles = append(metadataFiles, globalFPInfo.GetStatisticsFilePath())
 	}
 	for _, filename := range metadataFiles {

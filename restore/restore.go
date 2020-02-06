@@ -101,7 +101,7 @@ func DoSetup() {
 	CreateConnectionPool("postgres")
 
 	var err error
-	restoreArgs, err = options.NewOptions(cmdFlags)
+	opts, err = options.NewOptions(cmdFlags)
 	gplog.FatalOnError(err)
 
 	segConfig := cluster.MustGetSegmentConfiguration(connectionPool)
@@ -147,8 +147,8 @@ func DoSetup() {
 		ValidateRelationsInRestoreDatabase(connectionPool, relationsToRestore)
 	}
 
-	if restoreArgs.RedirectSchema != "" {
-		ValidateRedirectSchema(connectionPool, restoreArgs.RedirectSchema)
+	if opts.RedirectSchema != "" {
+		ValidateRedirectSchema(connectionPool, opts.RedirectSchema)
 	}
 }
 
@@ -176,7 +176,7 @@ func DoRestore() {
 		restorePostdata(metadataFilename)
 	}
 
-	if MustGetFlagBool(options.WITH_STATS) && backupConfig.WithStatistics {
+	if opts.WithStats && backupConfig.WithStatistics {
 		restoreStatistics()
 	}
 }
@@ -283,12 +283,12 @@ func restorePredata(metadataFilename string) {
 
 	filters := NewFilters(inSchemas, exSchemas, inRelations, exRelations)
 	schemaStatements := []toc.StatementWithType{}
-	if restoreArgs.RedirectSchema == "" {
+	if opts.RedirectSchema == "" {
 		schemaStatements = GetRestoreMetadataStatementsFiltered("predata", metadataFilename, []string{"SCHEMA"}, []string{}, filters)
 	}
 	statements := GetRestoreMetadataStatementsFiltered("predata", metadataFilename, []string{}, []string{"SCHEMA"}, filters)
 
-	editStatementsRedirectSchema(statements, restoreArgs.RedirectSchema)
+	editStatementsRedirectSchema(statements, opts.RedirectSchema)
 	progressBar := utils.NewProgressBar(len(schemaStatements)+len(statements), "Pre-data objects restored: ", utils.PB_VERBOSE)
 	progressBar.Start()
 
@@ -377,7 +377,7 @@ func restorePostdata(metadataFilename string) {
 	filters := NewFilters(inSchemas, exSchemas, inRelations, exRelations)
 
 	statements := GetRestoreMetadataStatementsFiltered("postdata", metadataFilename, []string{}, []string{}, filters)
-	editStatementsRedirectSchema(statements, restoreArgs.RedirectSchema)
+	editStatementsRedirectSchema(statements, opts.RedirectSchema)
 	firstBatch, secondBatch := BatchPostdataStatements(statements)
 	progressBar := utils.NewProgressBar(len(statements), "Post-data objects restored: ", utils.PB_VERBOSE)
 	progressBar.Start()

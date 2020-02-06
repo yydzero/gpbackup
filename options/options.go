@@ -23,6 +23,7 @@ type Options struct {
 	includedSchemas           []string
 	originalIncludedRelations []string
 	RedirectSchema            string
+	WithStats                 bool
 }
 
 func NewOptions(initialFlags *pflag.FlagSet) (*Options, error) {
@@ -67,6 +68,11 @@ func NewOptions(initialFlags *pflag.FlagSet) (*Options, error) {
 		return nil, err
 	}
 
+	withStats, err := initialFlags.GetBool(WITH_STATS)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Options{
 		includedRelations:         includedRelations,
 		excludedRelations:         excludedRelations,
@@ -75,6 +81,7 @@ func NewOptions(initialFlags *pflag.FlagSet) (*Options, error) {
 		isLeafPartitionData:       leafPartitionData,
 		originalIncludedRelations: includedRelations,
 		RedirectSchema:            redirectSchema,
+		WithStats:                 withStats,
 	}, nil
 }
 

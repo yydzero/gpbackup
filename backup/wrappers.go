@@ -2,6 +2,8 @@ package backup
 
 import (
 	"fmt"
+	"reflect"
+
 	"github.com/greenplum-db/gp-common-go-libs/cluster"
 	"github.com/greenplum-db/gp-common-go-libs/dbconn"
 	"github.com/greenplum-db/gp-common-go-libs/gplog"
@@ -11,7 +13,6 @@ import (
 	"github.com/greenplum-db/gpbackup/utils"
 	"github.com/nightlyone/lockfile"
 	"github.com/pkg/errors"
-	"reflect"
 )
 
 /*
@@ -94,7 +95,7 @@ func NewBackupConfig(dbName string, dbVersion string, backupVersion string, plug
 		Plugin:                plugin,
 		SingleDataFile:        MustGetFlagBool(options.SINGLE_DATA_FILE),
 		Timestamp:             timestamp,
-		WithStatistics:        MustGetFlagBool(options.WITH_STATS),
+		WithStatistics:        opts.WithStats,
 	}
 
 	return &backupConfig

@@ -90,7 +90,8 @@ func DoSetup() {
 	InitializeConnectionPool()
 
 	gplog.Info("Starting backup of database %s", MustGetFlagString(options.DBNAME))
-	opts, err := options.NewOptions(cmdFlags)
+	var err error
+	opts, err = options.NewOptions(cmdFlags)
 	gplog.FatalOnError(err)
 
 	validateFilterLists(opts)
@@ -198,7 +199,7 @@ func DoBackup() {
 		backupData(backupSetTables)
 	}
 
-	if MustGetFlagBool(options.WITH_STATS) {
+	if opts.WithStats {
 		backupStatistics(metadataTables)
 	}
 
@@ -210,7 +211,7 @@ func DoBackup() {
 	if pluginConfigFlag != "" {
 		pluginConfig.MustBackupFile(metadataFilename)
 		pluginConfig.MustBackupFile(globalFPInfo.GetTOCFilePath())
-		if MustGetFlagBool(options.WITH_STATS) {
+		if opts.WithStats {
 			pluginConfig.MustBackupFile(globalFPInfo.GetStatisticsFilePath())
 		}
 		_ = utils.CopyFile(pluginConfigFlag, globalFPInfo.GetPluginConfigPath())

@@ -39,7 +39,7 @@ var (
 	wasTerminated       bool
 	errorTablesMetadata map[string]Empty
 	errorTablesData     map[string]Empty
-	restoreArgs         *options.Options
+	opts                *options.Options
 	/*
 	 * Used for synchronizing DoCleanup.  In DoInit() we increment the group
 	 * and then wait for at least one DoCleanup to finish, either in DoTeardown
@@ -119,4 +119,8 @@ func GetVersion() string {
 
 func SetVersion(v string) {
 	version = v
+}
+
+func SetOpts(o *options.Options) {
+	opts = o
 }

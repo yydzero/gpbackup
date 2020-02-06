@@ -236,6 +236,7 @@ withstatistics: false
 		var oldWd string
 		var mdd string
 		var tempDir string
+		var opts *options.Options
 
 		BeforeEach(func() {
 			tempDir, _ = ioutil.TempDir("", "temp")
@@ -288,6 +289,8 @@ withstatistics: false
 			Expect(err).ToNot(HaveOccurred())
 
 			restore.SetVersion("1.11.0+dev.28.g10571fd")
+			opts = &options.Options{}
+			restore.SetOpts(opts)
 		})
 		AfterEach(func() {
 			err := os.RemoveAll(tempDir)
@@ -300,11 +303,13 @@ withstatistics: false
 		Describe("RecoverMetadataFilesUsingPlugin", func() {
 			It("proceed without warning when plugin version is found", func() {
 				_ = cmdFlags.Set(options.TIMESTAMP, "20180415154238")
+				opts.WithStats = false
 				restore.RecoverMetadataFilesUsingPlugin()
 				Expect(string(logfile.Contents())).ToNot(ContainSubstring("cannot recover plugin version"))
 			})
 			It("logs warning when plugin version not found", func() {
 				_ = cmdFlags.Set(options.TIMESTAMP, "20170415154408")
+				opts.WithStats = false
 				restore.RecoverMetadataFilesUsingPlugin()
 				Expect(string(logfile.Contents())).To(ContainSubstring("cannot recover plugin version"))
 			})
