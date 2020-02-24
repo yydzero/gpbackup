@@ -90,7 +90,7 @@ func DoSetup() {
 	InitializeConnectionPool()
 
 	gplog.Info("Starting backup of database %s", MustGetFlagString(options.DBNAME))
-	opts, err := options.NewOptions(cmdFlags)
+	opts, err := options.NewOptions(cmdFlags, true)
 	gplog.FatalOnError(err)
 
 	validateFilterLists(opts)

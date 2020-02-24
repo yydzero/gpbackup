@@ -78,14 +78,19 @@ func DoInit(cmd *cobra.Command) {
 * This function handles argument parsing and validation, e.g. checking that a passed filename exists.
 * It should only validate; initialization with any sort of side effects should go in DoInit or DoSetup.
  */
-func DoValidation(cmd *cobra.Command) {
+func DoFlagValidation(cmd *cobra.Command) {
 	ValidateFlagCombinations(cmd.Flags())
-	err := utils.ValidateFullPath(MustGetFlagString(options.BACKUP_DIR))
+
+	var err error
+	opts, err = options.NewOptions(cmdFlags, false)
 	gplog.FatalOnError(err)
-	err = utils.ValidateFullPath(MustGetFlagString(options.PLUGIN_CONFIG))
+
+	err = utils.ValidateFullPath(opts.BackupDir)
 	gplog.FatalOnError(err)
-	if !filepath.IsValidTimestamp(MustGetFlagString(options.TIMESTAMP)) {
-		gplog.Fatal(errors.Errorf("Timestamp %s is invalid.  Timestamps must be in the format YYYYMMDDHHMMSS.", MustGetFlagString(options.TIMESTAMP)), "")
+	err = utils.ValidateFullPath(opts.PluginConfig)
+	gplog.FatalOnError(err)
+	if !filepath.IsValidTimestamp(opts.Timestamp) {
+		gplog.Fatal(errors.Errorf("Timestamp %s is invalid.  Timestamps must be in the format YYYYMMDDHHMMSS.", opts.Timestamp), "")
 	}
 }
 
@@ -100,11 +105,7 @@ func DoSetup() {
 
 	CreateConnectionPool("postgres")
 
-	var err error
-	opts, err = options.NewOptions(cmdFlags)
-	gplog.FatalOnError(err)
-
-	err = opts.QuoteIncludeRelations(connectionPool)
+	err := opts.QuoteIncludeRelations(connectionPool)
 	gplog.FatalOnError(err)
 
 	segConfig := cluster.MustGetSegmentConfiguration(connectionPool)

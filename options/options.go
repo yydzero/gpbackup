@@ -12,9 +12,12 @@ import (
 	"github.com/spf13/pflag"
 )
 
-// This is meant to be a read only package. Values inside should only be
-// modified by setters, it's method functions, or initialization function.
-// This package is meant to make mocking flags easier.
+// This struct is should be read only is production code. Values inside should
+// only be modified by setters, it's method functions, or initialization
+// function. The only reason the fields are exported is so they can be easily
+// modified for testing.  This package is meant to make mocking flags easier,
+// and act as a cache so we do not need to always verify the flag values exist
+// when we need their values.
 type Options struct {
 	IncludedRelations         []string
 	ExcludedRelations         []string
@@ -23,9 +26,12 @@ type Options struct {
 	IncludedSchemas           []string
 	originalIncludedRelations []string
 	RedirectSchema            string
+	BackupDir                 string
+	PluginConfig              string
+	Timestamp                 string
 }
 
-func NewOptions(initialFlags *pflag.FlagSet) (*Options, error) {
+func NewOptions(initialFlags *pflag.FlagSet, isBackup bool) (*Options, error) {
 	includedRelations, err := setFiltersFromFile(initialFlags, INCLUDE_RELATION, INCLUDE_RELATION_FILE)
 	if err != nil {
 		return nil, err
@@ -59,6 +65,26 @@ func NewOptions(initialFlags *pflag.FlagSet) (*Options, error) {
 		return nil, err
 	}
 
+	backupDir, err := initialFlags.GetString(BACKUP_DIR)
+	if err != nil {
+		return nil, err
+	}
+
+	pluginConfig, err := initialFlags.GetString(PLUGIN_CONFIG)
+	if err != nil {
+		return nil, err
+	}
+
+	var timestamp string
+	if isBackup {
+		// backup does not contain the --timestamp flag
+	} else {
+		timestamp, err = initialFlags.GetString(TIMESTAMP)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	redirectSchema := ""
 	if initialFlags.Lookup(REDIRECT_SCHEMA) != nil {
 		redirectSchema, err = initialFlags.GetString(REDIRECT_SCHEMA)
@@ -75,6 +101,9 @@ func NewOptions(initialFlags *pflag.FlagSet) (*Options, error) {
 		isLeafPartitionData:       leafPartitionData,
 		originalIncludedRelations: includedRelations,
 		RedirectSchema:            redirectSchema,
+		BackupDir:                 backupDir,
+		PluginConfig:              pluginConfig,
+		Timestamp:                 timestamp,
 	}, nil
 }
 

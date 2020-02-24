@@ -109,7 +109,7 @@ bar";
 		It("adds parent table when child partition with special chars is included", func() {
 			err := backupCmdFlags.Set(options.INCLUDE_RELATION, `public.CAPpart_1_prt_girls`)
 			Expect(err).ToNot(HaveOccurred())
-			subject, err := options.NewOptions(backupCmdFlags)
+			subject, err := options.NewOptions(backupCmdFlags, true)
 			Expect(err).To(Not(HaveOccurred()))
 			Expect(subject.GetIncludedTables()).To(ContainElement("public.CAPpart_1_prt_girls"))
 			Expect(subject.GetIncludedTables()).To(HaveLen(1))
@@ -139,7 +139,7 @@ bar";
 
 			err := backupCmdFlags.Set(options.INCLUDE_RELATION, `public."hasquote"_1_prt_girls`)
 			Expect(err).ToNot(HaveOccurred())
-			subject, err := options.NewOptions(backupCmdFlags)
+			subject, err := options.NewOptions(backupCmdFlags, true)
 			Expect(err).To(Not(HaveOccurred()))
 			Expect(subject.GetIncludedTables()).To(ContainElement(`public."hasquote"_1_prt_girls`))
 			Expect(subject.GetIncludedTables()).To(HaveLen(1))
@@ -167,7 +167,7 @@ PARTITION BY LIST (gender)
 			testhelper.AssertQueryRuns(connectionPool, "CREATE TABLE public.test_table(i int)")
 			defer testhelper.AssertQueryRuns(connectionPool, "DROP TABLE public.test_table")
 
-			subject, err := options.NewOptions(backupCmdFlags)
+			subject, err := options.NewOptions(backupCmdFlags, true)
 			Expect(err).To(Not(HaveOccurred()))
 
 			err = subject.ExpandIncludesForPartitions(connectionPool, backupCmdFlags)
@@ -201,7 +201,7 @@ FORMAT 'csv';`)
 			defer testhelper.AssertQueryRuns(connectionPool, "DROP TABLE public.partition_table")
 			defer testhelper.AssertQueryRuns(connectionPool, "DROP TABLE public.partition_table_ext_part_")
 
-			subject, err := options.NewOptions(backupCmdFlags)
+			subject, err := options.NewOptions(backupCmdFlags, true)
 			Expect(err).To(Not(HaveOccurred()))
 
 			err = subject.ExpandIncludesForPartitions(connectionPool, backupCmdFlags)
@@ -259,7 +259,7 @@ FORMAT 'csv';`)
 			defer testhelper.AssertQueryRuns(connectionPool, "DROP TABLE public.partition_table3")
 			defer testhelper.AssertQueryRuns(connectionPool, "DROP TABLE public.partition_table3_ext_part_")
 
-			subject, err := options.NewOptions(backupCmdFlags)
+			subject, err := options.NewOptions(backupCmdFlags, true)
 			Expect(err).To(Not(HaveOccurred()))
 
 			err = subject.ExpandIncludesForPartitions(connectionPool, backupCmdFlags)

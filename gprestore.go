@@ -18,7 +18,7 @@ func main() {
 		Version: GetVersion(),
 		Run: func(cmd *cobra.Command, args []string) {
 			defer DoTeardown()
-			DoValidation(cmd)
+			DoFlagValidation(cmd)
 			DoSetup()
 			DoRestore()
 		}}

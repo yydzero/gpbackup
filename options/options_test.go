@@ -1,14 +1,15 @@
 package options_test
 
 import (
+	"io/ioutil"
+	"os"
+
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/greenplum-db/gp-common-go-libs/dbconn"
 	"github.com/greenplum-db/gp-common-go-libs/testhelper"
 	"github.com/greenplum-db/gpbackup/backup"
 	"github.com/greenplum-db/gpbackup/options"
 	"github.com/spf13/pflag"
-	"io/ioutil"
-	"os"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -24,7 +25,7 @@ var _ = Describe("options", func() {
 	})
 	Describe("Options initialization", func() {
 		It("returns no included tables when none specified", func() {
-			subject, err := options.NewOptions(myflags)
+			subject, err := options.NewOptions(myflags, true)
 			Expect(err).To(Not(HaveOccurred()))
 
 			includedTables := subject.GetIncludedTables()
@@ -36,7 +37,7 @@ var _ = Describe("options", func() {
 			err := myflags.Set(options.INCLUDE_RELATION, "foo.bar")
 			Expect(err).ToNot(HaveOccurred())
 
-			subject, err := options.NewOptions(myflags)
+			subject, err := options.NewOptions(myflags, true)
 			Expect(err).To(Not(HaveOccurred()))
 
 			includedTables := subject.GetIncludedTables()
@@ -48,7 +49,7 @@ var _ = Describe("options", func() {
 		It("returns an include with special characters besides quote and dot", func() {
 			err := myflags.Set(options.INCLUDE_RELATION, `foo '~#$%^&*()_-+[]{}><\|;:/?!\t\n,.bar`)
 			Expect(err).ToNot(HaveOccurred())
-			subject, err := options.NewOptions(myflags)
+			subject, err := options.NewOptions(myflags, true)
 			Expect(err).To(Not(HaveOccurred()))
 
 			includedTables := subject.GetIncludedTables()
@@ -63,7 +64,7 @@ var _ = Describe("options", func() {
 			err = myflags.Set(options.INCLUDE_RELATION, "abc.com,xyz.com")
 			Expect(err).ToNot(HaveOccurred())
 
-			subject, err := options.NewOptions(myflags)
+			subject, err := options.NewOptions(myflags, true)
 			Expect(err).To(Not(HaveOccurred()))
 
 			includedTables := subject.GetIncludedTables()
@@ -87,7 +88,7 @@ var _ = Describe("options", func() {
 
 			err = myflags.Set(options.INCLUDE_RELATION_FILE, file.Name())
 			Expect(err).ToNot(HaveOccurred())
-			subject, err := options.NewOptions(myflags)
+			subject, err := options.NewOptions(myflags, true)
 			Expect(err).To(Not(HaveOccurred()))
 
 			includedTables := subject.GetIncludedTables()
@@ -110,7 +111,7 @@ var _ = Describe("options", func() {
 
 			err = myflags.Set(options.INCLUDE_RELATION_FILE, file.Name())
 			Expect(err).ToNot(HaveOccurred())
-			_, err = options.NewOptions(myflags)
+			_, err = options.NewOptions(myflags, true)
 			Expect(err).To(Not(HaveOccurred()))
 
 			includedTables, err := myflags.GetStringArray(options.INCLUDE_RELATION)
@@ -127,7 +128,7 @@ var _ = Describe("options", func() {
 			err = myflags.Set(options.LEAF_PARTITION_DATA, "true")
 			Expect(err).ToNot(HaveOccurred())
 
-			subject, err := options.NewOptions(myflags)
+			subject, err := options.NewOptions(myflags, true)
 			Expect(err).To(Not(HaveOccurred()))
 
 			Expect(subject.GetIncludedSchemas()[0]).To(Equal("my include schema"))
@@ -136,12 +137,12 @@ var _ = Describe("options", func() {
 		It("returns an error upon invalid inclusions", func() {
 			err := myflags.Set(options.INCLUDE_RELATION, "foo")
 			Expect(err).ToNot(HaveOccurred())
-			_, err = options.NewOptions(myflags)
+			_, err = options.NewOptions(myflags, true)
 			Expect(err).To(HaveOccurred())
 		})
 		Describe("AddIncludeRelation", func() {
 			It("it adds a relation", func() {
-				subject, err := options.NewOptions(myflags)
+				subject, err := options.NewOptions(myflags, true)
 				Expect(err).To(Not(HaveOccurred()))
 				subject.AddIncludedRelation("public.foobar")
 				Expect(subject.GetIncludedTables()).To(Equal([]string{"public.foobar"}))

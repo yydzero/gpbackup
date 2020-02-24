@@ -33,9 +33,9 @@ import (
 )
 
 var (
-	stdout       *Buffer
-	logfile      *Buffer
-	buffer       *Buffer
+	stdout  *Buffer
+	logfile *Buffer
+	buffer  *Buffer
 )
 
 func TestReport(t *testing.T) {
@@ -297,21 +297,22 @@ restore status:      Success but non-fatal errors occurred. See log file .+ for 
 		AfterEach(func() {
 			utils.InitializePipeThroughParameters(false, 0)
 		})
+		// TODO: Remove pflags from setup once everything uses Options struct.
 		It("configures the Report struct correctly", func() {
 			utils.InitializePipeThroughParameters(true, 0)
 			backupCmdFlags := pflag.NewFlagSet("gpbackup", pflag.ExitOnError)
 			backup.SetFlagDefaults(backupCmdFlags)
 			backup.SetCmdFlags(backupCmdFlags)
+			backupCmdFlags.String(options.TIMESTAMP, "", "timestamp") // This is a temporary hack until options has all flags
 			err := backupCmdFlags.Set(options.INCLUDE_RELATION, "public.foobar")
 			Expect(err).ToNot(HaveOccurred())
-			opts, err := options.NewOptions(backupCmdFlags)
+			opts, err := options.NewOptions(backupCmdFlags, true)
 			Expect(err).ToNot(HaveOccurred())
 			opts.AddIncludedRelation("public.baz")
 			err = backupCmdFlags.Set(options.INCLUDE_RELATION, "public.baz")
 			Expect(err).ToNot(HaveOccurred())
 
-			backupConfig := backup.NewBackupConfig("testdb",
-				"5.0.0 build test", "0.1.0",
+			backupConfig := backup.NewBackupConfig("testdb", "5.0.0 build test", "0.1.0",
 				"/tmp/plugin.sh", "timestamp1", *opts)
 			structmatcher.ExpectStructsToMatch(history.BackupConfig{
 				BackupVersion:        "0.1.0",

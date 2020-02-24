@@ -2,6 +2,8 @@ package backup
 
 import (
 	"fmt"
+	"reflect"
+
 	"github.com/greenplum-db/gp-common-go-libs/cluster"
 	"github.com/greenplum-db/gp-common-go-libs/dbconn"
 	"github.com/greenplum-db/gp-common-go-libs/gplog"
@@ -11,7 +13,6 @@ import (
 	"github.com/greenplum-db/gpbackup/utils"
 	"github.com/nightlyone/lockfile"
 	"github.com/pkg/errors"
-	"reflect"
 )
 
 /*
@@ -74,7 +75,7 @@ func SetSessionGUCs(connNum int) {
 
 func NewBackupConfig(dbName string, dbVersion string, backupVersion string, plugin string, timestamp string, opts options.Options) *history.BackupConfig {
 	backupConfig := history.BackupConfig{
-		BackupDir:             MustGetFlagString(options.BACKUP_DIR),
+		BackupDir:             opts.BackupDir,
 		BackupVersion:         backupVersion,
 		Compressed:            !MustGetFlagBool(options.NO_COMPRESSION),
 		DatabaseName:          dbName,
