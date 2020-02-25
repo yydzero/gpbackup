@@ -78,8 +78,8 @@ func DoInit(cmd *cobra.Command) {
 * This function handles argument parsing and validation, e.g. checking that a passed filename exists.
 * It should only validate; initialization with any sort of side effects should go in DoInit or DoSetup.
  */
-func DoFlagValidation(cmd *cobra.Command) {
-	ValidateFlagCombinations(cmd.Flags())
+func DoRestoreFlagValidation(cmd *cobra.Command) {
+	ValidateRestoreFlagCombinations(cmd.Flags())
 
 	var err error
 	opts, err = options.NewOptions(cmdFlags, false)
@@ -101,7 +101,7 @@ func DoSetup() {
 
 	utils.CheckGpexpandRunning(utils.RestorePreventedByGpexpandMessage)
 	restoreStartTime = history.CurrentTimestamp()
-	gplog.Info("Restore Key = %s", MustGetFlagString(options.TIMESTAMP))
+	gplog.Info("Restore Key = %s", opts.Timestamp)
 
 	CreateConnectionPool("postgres")
 
@@ -110,11 +110,11 @@ func DoSetup() {
 
 	segConfig := cluster.MustGetSegmentConfiguration(connectionPool)
 	globalCluster = cluster.NewCluster(segConfig)
-	segPrefix := filepath.ParseSegPrefix(MustGetFlagString(options.BACKUP_DIR), MustGetFlagString(options.TIMESTAMP))
-	globalFPInfo = filepath.NewFilePathInfo(globalCluster, MustGetFlagString(options.BACKUP_DIR), MustGetFlagString(options.TIMESTAMP), segPrefix)
+	segPrefix := filepath.ParseSegPrefix(opts.BackupDir, opts.Timestamp)
+	globalFPInfo = filepath.NewFilePathInfo(globalCluster, opts.BackupDir, opts.Timestamp, segPrefix)
 
 	// Get restore metadata from plugin
-	if MustGetFlagString(options.PLUGIN_CONFIG) != "" {
+	if opts.PluginConfig != "" {
 		RecoverMetadataFilesUsingPlugin()
 	} else {
 		InitializeBackupConfig()

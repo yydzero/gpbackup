@@ -17,7 +17,7 @@ import (
  * This file contains functions related to validating user input.
  */
 
-func validateFilterListsInBackupSet() {
+func validateFilterListsInBackupSet(opts options.Options) {
 	ValidateIncludeSchemasInBackupSet(opts.IncludedSchemas)
 	ValidateExcludeSchemasInBackupSet(opts.ExcludedSchemas)
 	ValidateIncludeRelationsInBackupSet(opts.IncludedRelations)
@@ -225,7 +225,10 @@ END AS string;`, utils.EscapeSingleQuotes(unquotedDBName))
 	}
 }
 
-func ValidateBackupFlagCombinations() {
+// The validations in this function check if restore is possible given the
+// flags backup previously ran with. e.g. if the backup was done with the flag
+// --data-only, then a restore with --metadata-only will not be possible
+func ValidateBackupRestoreFlagCombinations() {
 	if backupConfig.SingleDataFile && MustGetFlagInt(options.JOBS) != 1 {
 		gplog.Fatal(errors.Errorf("Cannot use jobs flag when restoring backups with a single data file per segment."), "")
 	}
@@ -238,10 +241,7 @@ func ValidateBackupFlagCombinations() {
 	if backupConfig.DataOnly && MustGetFlagBool(options.METADATA_ONLY) {
 		gplog.Fatal(errors.Errorf("Cannot use metadata-only flag when restoring data-only backup"), "")
 	}
-	validateBackupFlagPluginCombinations()
-}
 
-func validateBackupFlagPluginCombinations() {
 	if backupConfig.Plugin != "" && MustGetFlagString(options.PLUGIN_CONFIG) == "" {
 		gplog.Fatal(errors.Errorf("Backup was taken with plugin %s. The --plugin-config flag must be used to restore.", backupConfig.Plugin), "")
 	} else if backupConfig.Plugin == "" && MustGetFlagString(options.PLUGIN_CONFIG) != "" {
@@ -249,7 +249,7 @@ func validateBackupFlagPluginCombinations() {
 	}
 }
 
-func ValidateFlagCombinations(flags *pflag.FlagSet) {
+func ValidateRestoreFlagCombinations(flags *pflag.FlagSet) {
 	options.CheckExclusiveFlags(flags, options.DATA_ONLY, options.WITH_GLOBALS)
 	options.CheckExclusiveFlags(flags, options.DATA_ONLY, options.CREATE_DB)
 	options.CheckExclusiveFlags(flags, options.DEBUG, options.QUIET, options.VERBOSE)

@@ -152,9 +152,8 @@ func BackupConfigurationValidation() {
 		SetRestorePlanForLegacyBackup(globalTOC, globalFPInfo.Timestamp, backupConfig)
 	}
 
-	ValidateBackupFlagCombinations()
-
-	validateFilterListsInBackupSet()
+	ValidateBackupRestoreFlagCombinations()
+	validateFilterListsInBackupSet(*opts)
 }
 
 func SetRestorePlanForLegacyBackup(toc *toc.TOC, backupTimestamp string, backupConfig *history.BackupConfig) {
