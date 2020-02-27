@@ -135,11 +135,10 @@ var _ = Describe("restore/validate tests", func() {
 	Describe("ValidateRelationsInRestoreDatabase", func() {
 		BeforeEach(func() {
 			restore.SetBackupConfig(&history.BackupConfig{DataOnly: false})
-			_ = cmdFlags.Set(options.DATA_ONLY, "false")
 		})
 		Context("data-only restore", func() {
 			BeforeEach(func() {
-				_ = cmdFlags.Set(options.DATA_ONLY, "true")
+				opts.DataOnly = true
 			})
 			It("panics if all tables missing from database", func() {
 				noTableRows := sqlmock.NewRows([]string{"string"})

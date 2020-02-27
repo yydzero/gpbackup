@@ -11,7 +11,6 @@ import (
 	"sync/atomic"
 
 	"github.com/greenplum-db/gp-common-go-libs/gplog"
-	"github.com/greenplum-db/gpbackup/options"
 	"github.com/greenplum-db/gpbackup/toc"
 	"github.com/greenplum-db/gpbackup/utils"
 )
@@ -28,7 +27,7 @@ func executeStatementsForConn(statements chan toc.StatementWithType, fatalErr *e
 		_, err := connectionPool.Exec(statement.Statement, whichConn)
 		if err != nil {
 			gplog.Verbose("Error encountered when executing statement: %s Error was: %s", strings.TrimSpace(statement.Statement), err.Error())
-			if MustGetFlagBool(options.ON_ERROR_CONTINUE) {
+			if opts.OnErrorContinue {
 				if executeInParallel {
 					atomic.AddInt32(numErrors, 1)
 					mutex.Lock()

@@ -5,7 +5,6 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/greenplum-db/gpbackup/backup"
-	"github.com/greenplum-db/gpbackup/options"
 	"github.com/greenplum-db/gpbackup/restore"
 	"github.com/greenplum-db/gpbackup/utils"
 	"github.com/jackc/pgx"
@@ -19,7 +18,6 @@ var _ = Describe("restore/data tests", func() {
 		BeforeEach(func() {
 			utils.SetPipeThroughProgram(utils.PipeThroughProgram{Name: "cat", OutputCommand: "cat -", InputCommand: "cat -", Extension: ""})
 			backup.SetPluginConfig(nil)
-			_ = cmdFlags.Set(options.PLUGIN_CONFIG, "")
 		})
 		It("will restore a table from its own file with compression", func() {
 			utils.SetPipeThroughProgram(utils.PipeThroughProgram{Name: "gzip", OutputCommand: "gzip -c -1", InputCommand: "gzip -d -c", Extension: ".gz"})
@@ -48,7 +46,7 @@ var _ = Describe("restore/data tests", func() {
 		})
 		It("will restore a table from its own file with compression using a plugin", func() {
 			utils.SetPipeThroughProgram(utils.PipeThroughProgram{Name: "gzip", OutputCommand: "gzip -c -1", InputCommand: "gzip -d -c", Extension: ".gz"})
-			_ = cmdFlags.Set(options.PLUGIN_CONFIG, "/tmp/plugin_config")
+			opts.PluginConfig = "/tmp/plugin_config"
 			pluginConfig := utils.PluginConfig{ExecutablePath: "/tmp/fake-plugin.sh", ConfigPath: "/tmp/plugin_config"}
 			restore.SetPluginConfig(&pluginConfig)
 			execStr := regexp.QuoteMeta("COPY public.foo(i,j) FROM PROGRAM '/tmp/fake-plugin.sh restore_data /tmp/plugin_config <SEG_DATA_DIR>/backups/20170101/20170101010101/gpbackup_<SEGID>_20170101010101_pipe_3456.gz | gzip -d -c' WITH CSV DELIMITER ',' ON SEGMENT;")
@@ -60,7 +58,7 @@ var _ = Describe("restore/data tests", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 		It("will restore a table from its own file without compression using a plugin", func() {
-			_ = cmdFlags.Set(options.PLUGIN_CONFIG, "/tmp/plugin_config")
+			opts.PluginConfig = "/tmp/plugin_config"
 			pluginConfig := utils.PluginConfig{ExecutablePath: "/tmp/fake-plugin.sh", ConfigPath: "/tmp/plugin_config"}
 			restore.SetPluginConfig(&pluginConfig)
 			execStr := regexp.QuoteMeta("COPY public.foo(i,j) FROM PROGRAM '/tmp/fake-plugin.sh restore_data /tmp/plugin_config <SEG_DATA_DIR>/backups/20170101/20170101010101/gpbackup_<SEGID>_20170101010101_pipe_3456.gz | cat -' WITH CSV DELIMITER ',' ON SEGMENT;")

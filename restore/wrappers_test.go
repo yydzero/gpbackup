@@ -9,7 +9,6 @@ import (
 	"github.com/greenplum-db/gp-common-go-libs/cluster"
 	"github.com/greenplum-db/gp-common-go-libs/testhelper"
 	"github.com/greenplum-db/gpbackup/history"
-	"github.com/greenplum-db/gpbackup/options"
 	"github.com/greenplum-db/gpbackup/restore"
 	"github.com/greenplum-db/gpbackup/testutils"
 	"github.com/greenplum-db/gpbackup/toc"
@@ -78,8 +77,8 @@ var _ = Describe("wrapper tests", func() {
 			testhelper.ExpectRegexp(logfile, "[WARNING]:-Schema foo already exists")
 		})
 		It("logs error if --on-error-continue is set", func() {
-			_ = cmdFlags.Set(options.ON_ERROR_CONTINUE, "true")
-			defer cmdFlags.Set(options.ON_ERROR_CONTINUE, "false")
+			opts.OnErrorContinue = true
+			defer func() { opts.OnErrorContinue = false }()
 			expectedErr := errors.New("some other schema error")
 			mock.ExpectExec("create schema foo").WillReturnError(expectedErr)
 
@@ -242,7 +241,7 @@ withstatistics: false
 
 			err := ioutil.WriteFile(testConfigPath, []byte(sampleConfigContents), 0777)
 			Expect(err).ToNot(HaveOccurred())
-			err = cmdFlags.Set(options.PLUGIN_CONFIG, testConfigPath)
+			opts.PluginConfig = testConfigPath
 			Expect(err).ToNot(HaveOccurred())
 
 			executor = testutils.TestExecutorMultiple{
@@ -299,12 +298,12 @@ withstatistics: false
 		})
 		Describe("RecoverMetadataFilesUsingPlugin", func() {
 			It("proceed without warning when plugin version is found", func() {
-				_ = cmdFlags.Set(options.TIMESTAMP, "20180415154238")
+				opts.Timestamp = "20180415154238"
 				restore.RecoverMetadataFilesUsingPlugin()
 				Expect(string(logfile.Contents())).ToNot(ContainSubstring("cannot recover plugin version"))
 			})
 			It("logs warning when plugin version not found", func() {
-				_ = cmdFlags.Set(options.TIMESTAMP, "20170415154408")
+				opts.Timestamp = "20170415154408"
 				restore.RecoverMetadataFilesUsingPlugin()
 				Expect(string(logfile.Contents())).To(ContainSubstring("cannot recover plugin version"))
 			})

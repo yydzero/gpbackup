@@ -11,7 +11,6 @@ import (
 	"github.com/greenplum-db/gp-common-go-libs/iohelper"
 	"github.com/greenplum-db/gpbackup/filepath"
 	"github.com/greenplum-db/gpbackup/history"
-	"github.com/greenplum-db/gpbackup/options"
 	"github.com/greenplum-db/gpbackup/report"
 	"github.com/greenplum-db/gpbackup/toc"
 	"github.com/greenplum-db/gpbackup/utils"
@@ -52,18 +51,18 @@ func filtersEmpty(filters Filters) bool {
 }
 
 func SetLoggerVerbosity() {
-	if MustGetFlagBool(options.QUIET) {
+	if opts.Quiet {
 		gplog.SetVerbosity(gplog.LOGERROR)
-	} else if MustGetFlagBool(options.DEBUG) {
+	} else if opts.Debug {
 		gplog.SetVerbosity(gplog.LOGDEBUG)
-	} else if MustGetFlagBool(options.VERBOSE) {
+	} else if opts.Verbose {
 		gplog.SetVerbosity(gplog.LOGVERBOSE)
 	}
 }
 
 func CreateConnectionPool(unquotedDBName string) {
 	connectionPool = dbconn.NewDBConnFromEnvironment(unquotedDBName)
-	connectionPool.MustConnect(MustGetFlagInt(options.JOBS))
+	connectionPool.MustConnect(opts.Jobs)
 	utils.ValidateGPDBVersionCompatibility(connectionPool)
 }
 
@@ -141,7 +140,7 @@ func BackupConfigurationValidation() {
 		VerifyBackupDirectoriesExistOnAllHosts()
 	}
 
-	VerifyMetadataFilePaths(MustGetFlagBool(options.WITH_STATS))
+	VerifyMetadataFilePaths(opts.WithStats)
 
 	tocFilename := globalFPInfo.GetTOCFilePath()
 	globalTOC = toc.NewTOC(tocFilename)
@@ -169,26 +168,24 @@ func SetRestorePlanForLegacyBackup(toc *toc.TOC, backupTimestamp string, backupC
 
 func RecoverMetadataFilesUsingPlugin() {
 	var err error
-	pluginConfig, err = utils.ReadPluginConfig(MustGetFlagString(options.PLUGIN_CONFIG))
+	pluginConfig, err = utils.ReadPluginConfig(opts.PluginConfig)
 	gplog.FatalOnError(err)
 	configFilename := path.Base(pluginConfig.ConfigPath)
 	configDirname := path.Dir(pluginConfig.ConfigPath)
 	pluginConfig.ConfigPath = path.Join(configDirname, history.CurrentTimestamp()+"_"+configFilename)
-	_ = cmdFlags.Set(options.PLUGIN_CONFIG, pluginConfig.ConfigPath)
 	gplog.Info("plugin config path: %s", pluginConfig.ConfigPath)
 
 	pluginConfig.CheckPluginExistsOnAllHosts(globalCluster)
 
-	timestamp := MustGetFlagString(options.TIMESTAMP)
-	historicalPluginVersion := FindHistoricalPluginVersion(timestamp)
-	pluginConfig.SetBackupPluginVersion(timestamp, historicalPluginVersion)
+	historicalPluginVersion := FindHistoricalPluginVersion(opts.Timestamp)
+	pluginConfig.SetBackupPluginVersion(opts.Timestamp, historicalPluginVersion)
 
 	pluginConfig.CopyPluginConfigToAllHosts(globalCluster)
 	pluginConfig.SetupPluginForRestore(globalCluster, globalFPInfo)
 
 	metadataFiles := []string{globalFPInfo.GetConfigFilePath(), globalFPInfo.GetMetadataFilePath(),
 		globalFPInfo.GetBackupReportFilePath()}
-	if MustGetFlagBool(options.WITH_STATS) {
+	if opts.WithStats {
 		metadataFiles = append(metadataFiles, globalFPInfo.GetStatisticsFilePath())
 	}
 	for _, filename := range metadataFiles {
@@ -283,9 +280,9 @@ func ExecuteRestoreMetadataStatements(statements []toc.StatementWithType, object
 func GetBackupFPInfoListFromRestorePlan() []filepath.FilePathInfo {
 	fpInfoList := make([]filepath.FilePathInfo, 0)
 	for _, entry := range backupConfig.RestorePlan {
-		segPrefix := filepath.ParseSegPrefix(MustGetFlagString(options.BACKUP_DIR), entry.Timestamp)
+		segPrefix := filepath.ParseSegPrefix(opts.BackupDir, entry.Timestamp)
 
-		fpInfo := filepath.NewFilePathInfo(globalCluster, MustGetFlagString(options.BACKUP_DIR), entry.Timestamp, segPrefix)
+		fpInfo := filepath.NewFilePathInfo(globalCluster, opts.BackupDir, entry.Timestamp, segPrefix)
 		fpInfoList = append(fpInfoList, fpInfo)
 	}
 
@@ -293,8 +290,8 @@ func GetBackupFPInfoListFromRestorePlan() []filepath.FilePathInfo {
 }
 
 func GetBackupFPInfoForTimestamp(timestamp string) filepath.FilePathInfo {
-	segPrefix := filepath.ParseSegPrefix(MustGetFlagString(options.BACKUP_DIR), timestamp)
-	fpInfo := filepath.NewFilePathInfo(globalCluster, MustGetFlagString(options.BACKUP_DIR), timestamp, segPrefix)
+	segPrefix := filepath.ParseSegPrefix(opts.BackupDir, timestamp)
+	fpInfo := filepath.NewFilePathInfo(globalCluster, opts.BackupDir, timestamp, segPrefix)
 	return fpInfo
 }
 
@@ -321,7 +318,7 @@ func RestoreSchemas(schemaStatements []toc.StatementWithType, progressBar utils.
 				gplog.Warn("Schema %s already exists", schema.Name)
 			} else {
 				errMsg := fmt.Sprintf("Error encountered while creating schema %s", schema.Name)
-				if MustGetFlagBool(options.ON_ERROR_CONTINUE) {
+				if opts.OnErrorContinue {
 					gplog.Verbose(fmt.Sprintf("%s: %s", errMsg, err.Error()))
 					numErrors++
 				} else {

@@ -124,7 +124,7 @@ WHERE quote_ident(n.nspname) || '.' || quote_ident(c.relname) IN (%s)`, quotedTa
 	 * are not already in the database so we don't get duplicate data.
 	 */
 	var errMsg string
-	if backupConfig.DataOnly || MustGetFlagBool(options.DATA_ONLY) {
+	if backupConfig.DataOnly || opts.DataOnly {
 		if len(relationsInDB) < len(relationList) {
 			dbRelationsSet := utils.NewSet(relationsInDB)
 			for _, restoreRelation := range relationList {
@@ -229,22 +229,22 @@ END AS string;`, utils.EscapeSingleQuotes(unquotedDBName))
 // flags backup previously ran with. e.g. if the backup was done with the flag
 // --data-only, then a restore with --metadata-only will not be possible
 func ValidateBackupRestoreFlagCombinations() {
-	if backupConfig.SingleDataFile && MustGetFlagInt(options.JOBS) != 1 {
+	if backupConfig.SingleDataFile && opts.Jobs != 1 {
 		gplog.Fatal(errors.Errorf("Cannot use jobs flag when restoring backups with a single data file per segment."), "")
 	}
-	if (backupConfig.IncludeTableFiltered || backupConfig.DataOnly) && MustGetFlagBool(options.WITH_GLOBALS) {
+	if (backupConfig.IncludeTableFiltered || backupConfig.DataOnly) && opts.WithGlobals {
 		gplog.Fatal(errors.Errorf("Global metadata is not backed up in table-filtered or data-only backups."), "")
 	}
-	if backupConfig.MetadataOnly && MustGetFlagBool(options.DATA_ONLY) {
+	if backupConfig.MetadataOnly && opts.DataOnly {
 		gplog.Fatal(errors.Errorf("Cannot use data-only flag when restoring metadata-only backup"), "")
 	}
-	if backupConfig.DataOnly && MustGetFlagBool(options.METADATA_ONLY) {
+	if backupConfig.DataOnly && opts.MetadataOnly {
 		gplog.Fatal(errors.Errorf("Cannot use metadata-only flag when restoring data-only backup"), "")
 	}
 
-	if backupConfig.Plugin != "" && MustGetFlagString(options.PLUGIN_CONFIG) == "" {
+	if backupConfig.Plugin != "" && opts.PluginConfig == "" {
 		gplog.Fatal(errors.Errorf("Backup was taken with plugin %s. The --plugin-config flag must be used to restore.", backupConfig.Plugin), "")
-	} else if backupConfig.Plugin == "" && MustGetFlagString(options.PLUGIN_CONFIG) != "" {
+	} else if backupConfig.Plugin == "" && opts.PluginConfig != "" {
 		gplog.Fatal(errors.Errorf("The --plugin-config flag cannot be used to restore a backup taken without a plugin."), "")
 	}
 }

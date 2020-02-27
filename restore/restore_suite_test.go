@@ -10,9 +10,9 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/greenplum-db/gp-common-go-libs/dbconn"
+	"github.com/greenplum-db/gpbackup/options"
 	"github.com/greenplum-db/gpbackup/restore"
 	"github.com/greenplum-db/gpbackup/testutils"
-	"github.com/spf13/pflag"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -32,14 +32,13 @@ func TestRestore(t *testing.T) {
 	RunSpecs(t, "restore tests")
 }
 
-var cmdFlags *pflag.FlagSet
+var opts *options.Options
 
 var _ = BeforeEach(func() {
 	connectionPool, mock, stdout, _, logfile = testutils.SetupTestEnvironment()
 	restore.SetConnection(connectionPool)
 	buffer = NewBuffer()
 
-	cmdFlags = pflag.NewFlagSet("gprestore", pflag.ExitOnError)
-	restore.SetFlagDefaults(cmdFlags)
-	restore.SetCmdFlags(cmdFlags)
+	opts = &options.Options{}
+	restore.SetOptions(opts)
 })

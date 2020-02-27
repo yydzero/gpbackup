@@ -29,6 +29,18 @@ type Options struct {
 	BackupDir                 string
 	PluginConfig              string
 	Timestamp                 string
+	RedirectDB                string
+	CreateDB                  bool
+	WithGlobals               bool
+	WithStats                 bool
+	OnErrorContinue           bool
+	Incremental               bool
+	DataOnly                  bool
+	MetadataOnly              bool
+	Jobs                      int
+	Quiet                     bool
+	Debug                     bool
+	Verbose                   bool
 }
 
 func NewOptions(initialFlags *pflag.FlagSet, isBackup bool) (*Options, error) {
@@ -76,17 +88,87 @@ func NewOptions(initialFlags *pflag.FlagSet, isBackup bool) (*Options, error) {
 	}
 
 	var timestamp string
+	var redirectDB string
+	var createDB bool
+	var withGlobals bool
+	var withStats bool
+	var onErrorContinue bool
+	var incremental bool
+	var dataOnly bool
+	var metadataOnly bool
+	var jobs int
+	var quiet bool
+	var debug bool
+	var verbose bool
+	var redirectSchema string
 	if isBackup {
-		// backup does not contain the --timestamp flag
+
 	} else {
 		timestamp, err = initialFlags.GetString(TIMESTAMP)
 		if err != nil {
 			return nil, err
 		}
-	}
 
-	redirectSchema := ""
-	if initialFlags.Lookup(REDIRECT_SCHEMA) != nil {
+		redirectDB, err = initialFlags.GetString(REDIRECT_DB)
+		if err != nil {
+			return nil, err
+		}
+
+		createDB, err = initialFlags.GetBool(CREATE_DB)
+		if err != nil {
+			return nil, err
+		}
+
+		withGlobals, err = initialFlags.GetBool(WITH_GLOBALS)
+		if err != nil {
+			return nil, err
+		}
+
+		withStats, err = initialFlags.GetBool(WITH_STATS)
+		if err != nil {
+			return nil, err
+		}
+
+		onErrorContinue, err = initialFlags.GetBool(ON_ERROR_CONTINUE)
+		if err != nil {
+			return nil, err
+		}
+
+		incremental, err = initialFlags.GetBool(INCREMENTAL)
+		if err != nil {
+			return nil, err
+		}
+
+		dataOnly, err = initialFlags.GetBool(DATA_ONLY)
+		if err != nil {
+			return nil, err
+		}
+
+		metadataOnly, err = initialFlags.GetBool(METADATA_ONLY)
+		if err != nil {
+			return nil, err
+		}
+
+		jobs, err = initialFlags.GetInt(JOBS)
+		if err != nil {
+			return nil, err
+		}
+
+		quiet, err = initialFlags.GetBool(QUIET)
+		if err != nil {
+			return nil, err
+		}
+
+		debug, err = initialFlags.GetBool(DEBUG)
+		if err != nil {
+			return nil, err
+		}
+
+		verbose, err = initialFlags.GetBool(VERBOSE)
+		if err != nil {
+			return nil, err
+		}
+
 		redirectSchema, err = initialFlags.GetString(REDIRECT_SCHEMA)
 		if err != nil {
 			return nil, err
@@ -104,6 +186,18 @@ func NewOptions(initialFlags *pflag.FlagSet, isBackup bool) (*Options, error) {
 		BackupDir:                 backupDir,
 		PluginConfig:              pluginConfig,
 		Timestamp:                 timestamp,
+		RedirectDB:                redirectDB,
+		CreateDB:                  createDB,
+		WithGlobals:               withGlobals,
+		WithStats:                 withStats,
+		Incremental:               incremental,
+		DataOnly:                  dataOnly,
+		MetadataOnly:              metadataOnly,
+		Jobs:                      jobs,
+		Quiet:                     quiet,
+		Debug:                     debug,
+		Verbose:                   verbose,
+		OnErrorContinue:           onErrorContinue,
 	}, nil
 }
 

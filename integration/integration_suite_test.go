@@ -11,6 +11,7 @@ import (
 	"github.com/greenplum-db/gp-common-go-libs/dbconn"
 	"github.com/greenplum-db/gp-common-go-libs/testhelper"
 	"github.com/greenplum-db/gpbackup/backup"
+	"github.com/greenplum-db/gpbackup/options"
 	"github.com/greenplum-db/gpbackup/restore"
 	"github.com/greenplum-db/gpbackup/testutils"
 	"github.com/greenplum-db/gpbackup/toc"
@@ -24,13 +25,13 @@ import (
 )
 
 var (
-	buffer                  *bytes.Buffer
-	connectionPool          *dbconn.DBConn
-	tocfile                 *toc.TOC
-	backupfile              *utils.FileWithByteCount
-	testCluster             *cluster.Cluster
-	gpbackupHelperPath      string
-	stderr, logFile         *Buffer
+	buffer             *bytes.Buffer
+	connectionPool     *dbconn.DBConn
+	tocfile            *toc.TOC
+	backupfile         *utils.FileWithByteCount
+	testCluster        *cluster.Cluster
+	gpbackupHelperPath string
+	stderr, logFile    *Buffer
 
 	// GUC defaults. Initially set to GPDB4 values
 	concurrencyDefault    = "20"
@@ -98,6 +99,7 @@ var _ = BeforeSuite(func() {
 
 var backupCmdFlags *pflag.FlagSet
 var restoreCmdFlags *pflag.FlagSet
+var opts *options.Options
 
 var _ = BeforeEach(func() {
 	buffer = bytes.NewBuffer([]byte(""))
@@ -112,6 +114,9 @@ var _ = BeforeEach(func() {
 
 	restore.SetFlagDefaults(restoreCmdFlags)
 	restore.SetCmdFlags(restoreCmdFlags)
+
+	opts = &options.Options{}
+	restore.SetOptions(opts)
 })
 
 var _ = AfterSuite(func() {

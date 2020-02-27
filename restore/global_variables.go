@@ -91,6 +91,10 @@ func SetTOC(toc *toc.TOC) {
 	globalTOC = toc
 }
 
+func SetOptions(options *options.Options) {
+	opts = options
+}
+
 // Util functions to enable ease of access to global flag values
 
 func MustGetFlagString(flagName string) string {

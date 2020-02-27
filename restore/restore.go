@@ -126,13 +126,13 @@ func DoSetup() {
 		gplog.Verbose("Metadata will be restored from %s", metadataFilename)
 	}
 	unquotedRestoreDatabase := utils.UnquoteIdent(backupConfig.DatabaseName)
-	if MustGetFlagString(options.REDIRECT_DB) != "" {
-		unquotedRestoreDatabase = MustGetFlagString(options.REDIRECT_DB)
+	if opts.RedirectDB != "" {
+		unquotedRestoreDatabase = opts.RedirectDB
 	}
-	ValidateDatabaseExistence(unquotedRestoreDatabase, MustGetFlagBool(options.CREATE_DB), backupConfig.IncludeTableFiltered || backupConfig.DataOnly)
-	if MustGetFlagBool(options.WITH_GLOBALS) {
+	ValidateDatabaseExistence(unquotedRestoreDatabase, opts.CreateDB, backupConfig.IncludeTableFiltered || backupConfig.DataOnly)
+	if opts.WithGlobals {
 		restoreGlobal(metadataFilename)
-	} else if MustGetFlagBool(options.CREATE_DB) {
+	} else if opts.CreateDB {
 		createDatabase(metadataFilename)
 	}
 	if connectionPool != nil {
@@ -146,7 +146,7 @@ func DoSetup() {
 	 * For on-error-continue, we will see the same errors later when we try to run SQL,
 	 * but since they will not stop the restore, it is not necessary to log them twice.
 	 */
-	if !MustGetFlagBool(options.CREATE_DB) && !MustGetFlagBool(options.ON_ERROR_CONTINUE) && !MustGetFlagBool(options.INCREMENTAL) {
+	if !opts.CreateDB && !opts.OnErrorContinue && !opts.Incremental {
 		relationsToRestore := GenerateRestoreRelationList(*opts)
 		if opts.RedirectSchema != "" {
 			fqns, err := options.SeparateSchemaAndTable(relationsToRestore)
@@ -167,15 +167,15 @@ func DoSetup() {
 
 func DoRestore() {
 	metadataFilename := globalFPInfo.GetMetadataFilePath()
-	isDataOnly := backupConfig.DataOnly || MustGetFlagBool(options.DATA_ONLY)
-	isMetadataOnly := backupConfig.MetadataOnly || MustGetFlagBool(options.METADATA_ONLY)
+	isDataOnly := backupConfig.DataOnly || opts.DataOnly
+	isMetadataOnly := backupConfig.MetadataOnly || opts.MetadataOnly
 
 	if !isDataOnly {
 		restorePredata(metadataFilename)
 	}
 
 	if !isMetadataOnly {
-		if MustGetFlagString(options.PLUGIN_CONFIG) == "" {
+		if opts.PluginConfig == "" {
 			backupFileCount := 2 // 1 for the actual data file, 1 for the segment TOC file
 			if !backupConfig.SingleDataFile {
 				backupFileCount = len(globalTOC.DataEntries)
@@ -189,7 +189,7 @@ func DoRestore() {
 		restorePostdata(metadataFilename)
 	}
 
-	if MustGetFlagBool(options.WITH_STATS) && backupConfig.WithStatistics {
+	if opts.WithStats && backupConfig.WithStatistics {
 		restoreStatistics()
 	}
 }
@@ -199,8 +199,8 @@ func createDatabase(metadataFilename string) {
 	dbName := backupConfig.DatabaseName
 	gplog.Info("Creating database")
 	statements := GetRestoreMetadataStatements("global", metadataFilename, objectTypes, []string{})
-	if MustGetFlagString(options.REDIRECT_DB) != "" {
-		quotedDBName := utils.QuoteIdent(connectionPool, MustGetFlagString(options.REDIRECT_DB))
+	if opts.RedirectDB != "" {
+		quotedDBName := utils.QuoteIdent(connectionPool, opts.RedirectDB)
 		dbName = quotedDBName
 		statements = toc.SubstituteRedirectDatabaseInStatements(statements, backupConfig.DatabaseName, quotedDBName)
 	}
@@ -210,13 +210,13 @@ func createDatabase(metadataFilename string) {
 
 func restoreGlobal(metadataFilename string) {
 	objectTypes := []string{"SESSION GUCS", "DATABASE GUC", "DATABASE METADATA", "RESOURCE QUEUE", "RESOURCE GROUP", "ROLE", "ROLE GUCS", "ROLE GRANT", "TABLESPACE"}
-	if MustGetFlagBool(options.CREATE_DB) {
+	if opts.CreateDB {
 		objectTypes = append(objectTypes, "DATABASE")
 	}
 	gplog.Info("Restoring global metadata")
 	statements := GetRestoreMetadataStatements("global", metadataFilename, objectTypes, []string{})
-	if MustGetFlagString(options.REDIRECT_DB) != "" {
-		quotedDBName := utils.QuoteIdent(connectionPool, MustGetFlagString(options.REDIRECT_DB))
+	if opts.RedirectDB != "" {
+		quotedDBName := utils.QuoteIdent(connectionPool, opts.RedirectDB)
 		statements = toc.SubstituteRedirectDatabaseInStatements(statements, backupConfig.DatabaseName, quotedDBName)
 	}
 	statements = toc.RemoveActiveRole(connectionPool.User, statements)
@@ -236,7 +236,7 @@ func restorePredata(metadataFilename string) {
 	inRelationsUserInput := opts.IncludedRelations
 	exRelationsUserInput := opts.ExcludedRelations
 
-	if MustGetFlagBool(options.INCREMENTAL) {
+	if opts.Incremental {
 		lastRestorePlanEntry := backupConfig.RestorePlan[len(backupConfig.RestorePlan)-1]
 		tableFQNsToRestore := lastRestorePlanEntry.TableFQNs
 
@@ -339,7 +339,7 @@ func restoreData() {
 	}
 	restorePlan := backupConfig.RestorePlan
 	restorePlanEntries := make([]history.RestorePlanEntry, 0)
-	if MustGetFlagBool(options.INCREMENTAL) {
+	if opts.Incremental {
 		restorePlanEntries = append(restorePlanEntries, restorePlan[len(backupConfig.RestorePlan)-1])
 
 	} else {
@@ -365,7 +365,7 @@ func restoreData() {
 	gucStatements := setGUCsForConnection(nil, 0)
 	for timestamp, entries := range filteredDataEntries {
 		gplog.Verbose("Restoring data from backup with timestamp: %s", timestamp)
-		if MustGetFlagBool(options.INCREMENTAL) {
+		if opts.Incremental {
 			_ = TruncateTablesBeforeRestore(entries)
 		}
 		restoreDataFromTimestamp(GetBackupFPInfoForTimestamp(timestamp), entries, gucStatements, dataProgressBar)

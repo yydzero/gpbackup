@@ -7,7 +7,6 @@ import (
 
 	"github.com/greenplum-db/gp-common-go-libs/dbconn"
 	"github.com/greenplum-db/gp-common-go-libs/testhelper"
-	"github.com/greenplum-db/gpbackup/options"
 	"github.com/greenplum-db/gpbackup/restore"
 	"github.com/greenplum-db/gpbackup/toc"
 	"github.com/greenplum-db/gpbackup/utils"
@@ -141,7 +140,10 @@ var _ = Describe("backup, utils, and restore integration tests related to parall
 			})
 			Context("on-error-continue is set", func() {
 				BeforeEach(func() {
-					_ = restoreCmdFlags.Set(options.ON_ERROR_CONTINUE, "true")
+					opts.OnErrorContinue = true
+				})
+				AfterEach(func() {
+					opts.OnErrorContinue = false
 				})
 				It("does not panic, but logs errors when running serially", func() {
 					restore.ExecuteStatementsAndCreateProgressBar(statements, "", utils.PB_NONE, false)

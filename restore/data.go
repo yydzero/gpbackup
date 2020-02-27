@@ -12,7 +12,6 @@ import (
 	"github.com/greenplum-db/gp-common-go-libs/dbconn"
 	"github.com/greenplum-db/gp-common-go-libs/gplog"
 	"github.com/greenplum-db/gpbackup/filepath"
-	"github.com/greenplum-db/gpbackup/options"
 	"github.com/greenplum-db/gpbackup/toc"
 	"github.com/greenplum-db/gpbackup/utils"
 	"github.com/jackc/pgx"
@@ -33,7 +32,7 @@ func CopyTableIn(connectionPool *dbconn.DBConn, tableName string, tableAttribute
 	if singleDataFile {
 		//helper.go handles compression, so we don't want to set it here
 		customPipeThroughCommand = "cat -"
-	} else if MustGetFlagString(options.PLUGIN_CONFIG) != "" {
+	} else if opts.PluginConfig != "" {
 		readFromDestinationCommand = fmt.Sprintf("%s restore_data %s", pluginConfig.ExecutablePath, pluginConfig.ConfigPath)
 	}
 
@@ -103,7 +102,7 @@ func restoreDataFromTimestamp(fpInfo filepath.FilePathInfo, dataEntries []toc.Ma
 		if wasTerminated {
 			return
 		}
-		utils.StartGpbackupHelpers(globalCluster, fpInfo, "--restore-agent", MustGetFlagString(options.PLUGIN_CONFIG), "", MustGetFlagBool(options.ON_ERROR_CONTINUE))
+		utils.StartGpbackupHelpers(globalCluster, fpInfo, "--restore-agent", opts.PluginConfig, "", opts.OnErrorContinue)
 	}
 	/*
 	 * We break when an interrupt is received and rely on
@@ -143,7 +142,7 @@ func restoreDataFromTimestamp(fpInfo filepath.FilePathInfo, dataEntries []toc.Ma
 				if err != nil {
 					gplog.Error(err.Error())
 					atomic.AddInt32(&numErrors, 1)
-					if !MustGetFlagBool(options.ON_ERROR_CONTINUE) {
+					if !opts.OnErrorContinue {
 						dataProgressBar.(*pb.ProgressBar).NotPrint = true
 						return
 					}
