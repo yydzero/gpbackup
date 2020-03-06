@@ -17,7 +17,7 @@ import (
  * Functions to print to the predata file
  */
 
-func PrintCreateShellTypeStatements(metadataFile *utils.FileWithByteCount, tocfile *toc.TOC, shellTypes []ShellType, baseTypes []BaseType, rangeTypes []RangeType) {
+func PrintCreateTypeStatements(metadataFile *utils.FileWithByteCount, tocfile *toc.TOC, shellTypes []ShellType, baseTypes []BaseType, rangeTypes []RangeType) {
 	metadataFile.MustPrintf("\n\n")
 
 	types := make([]toc.TOCObjectWithMetadata, 0)
@@ -40,7 +40,7 @@ func PrintCreateShellTypeStatements(metadataFile *utils.FileWithByteCount, tocfi
 	}
 }
 
-func PrintCreateDomainStatement(metadataFile *utils.FileWithByteCount, toc *toc.TOC, domain Domain, typeMetadata ObjectMetadata, constraints []Constraint) {
+func PrintCreateDomainStatement(metadataFile *utils.FileWithByteCount, toc *toc.TOC, domain Domain, typeMetadata ObjectMetadata) {
 	start := metadataFile.ByteCount
 	metadataFile.MustPrintf("\nCREATE DOMAIN %s AS %s", domain.FQN(), domain.BaseType)
 	if domain.DefaultVal != "" {

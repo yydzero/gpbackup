@@ -32,6 +32,7 @@ var (
 	globalFPInfo         filepath.FilePathInfo
 	globalTOC            *toc.TOC
 	objectCounts         map[string]int
+	objectMap            map[string][]Sortable
 	pluginConfig         *utils.PluginConfig
 	version              string
 	wasTerminated        bool

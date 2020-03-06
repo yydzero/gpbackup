@@ -180,24 +180,24 @@ ALTER TYPE public.base_type
 			testutils.AssertBufferContents(tocfile.PredataEntries, buffer, expectedEntries...)
 		})
 	})
-	Describe("PrintCreateShellTypeStatements", func() {
+	Describe("PrintCreateTypeStatements", func() {
 		shellOne := backup.ShellType{Oid: 1, Schema: "public", Name: "shell_type1"}
 		baseOne := backup.BaseType{Oid: 1, Schema: "public", Name: "base_type1", Input: "input_fn", Output: "output_fn", Receive: "", Send: "", ModIn: "", ModOut: "", InternalLength: -1, IsPassedByValue: false, Alignment: "c", Storage: "p", DefaultVal: "", Element: "", Category: "U", Delimiter: ""}
 		baseTwo := backup.BaseType{Oid: 1, Schema: "public", Name: "base_type2", Input: "input_fn", Output: "output_fn", Receive: "", Send: "", ModIn: "", ModOut: "", InternalLength: -1, IsPassedByValue: false, Alignment: "c", Storage: "p", DefaultVal: "", Element: "", Category: "U", Delimiter: ""}
 		rangeOne := backup.RangeType{Oid: 1, Schema: "public", Name: "range_type1"}
 		It("prints shell type for a shell type", func() {
-			backup.PrintCreateShellTypeStatements(backupfile, tocfile, []backup.ShellType{shellOne}, []backup.BaseType{}, []backup.RangeType{})
+			backup.PrintCreateTypeStatements(backupfile, tocfile, []backup.ShellType{shellOne}, []backup.BaseType{}, []backup.RangeType{})
 			testutils.ExpectEntry(tocfile.PredataEntries, 0, "public", "", "shell_type1", "TYPE")
 			testutils.AssertBufferContents(tocfile.PredataEntries, buffer, "CREATE TYPE public.shell_type1;")
 		})
 		It("prints shell type for a base type", func() {
-			backup.PrintCreateShellTypeStatements(backupfile, tocfile, []backup.ShellType{}, []backup.BaseType{baseOne, baseTwo}, []backup.RangeType{})
+			backup.PrintCreateTypeStatements(backupfile, tocfile, []backup.ShellType{}, []backup.BaseType{baseOne, baseTwo}, []backup.RangeType{})
 			testutils.ExpectEntry(tocfile.PredataEntries, 0, "public", "", "base_type1", "TYPE")
 			testutils.ExpectEntry(tocfile.PredataEntries, 1, "public", "", "base_type2", "TYPE")
 			testutils.AssertBufferContents(tocfile.PredataEntries, buffer, "CREATE TYPE public.base_type1;", "CREATE TYPE public.base_type2;")
 		})
 		It("prints shell type for a range type", func() {
-			backup.PrintCreateShellTypeStatements(backupfile, tocfile, []backup.ShellType{}, []backup.BaseType{}, []backup.RangeType{rangeOne})
+			backup.PrintCreateTypeStatements(backupfile, tocfile, []backup.ShellType{}, []backup.BaseType{}, []backup.RangeType{rangeOne})
 			testutils.ExpectEntry(tocfile.PredataEntries, 0, "public", "", "range_type1", "TYPE")
 			testutils.AssertBufferContents(tocfile.PredataEntries, buffer, "CREATE TYPE public.range_type1;")
 		})
@@ -208,18 +208,21 @@ ALTER TYPE public.base_type
 		domainOne := backup.Domain{Oid: 1, Schema: "public", Name: "domain1", DefaultVal: "4", BaseType: "numeric", NotNull: true, Collation: "public.mycollation"}
 		domainTwo := backup.Domain{Oid: 1, Schema: "public", Name: "domain2", DefaultVal: "", BaseType: "varchar", NotNull: false, Collation: ""}
 		It("prints a domain with a constraint", func() {
-			backup.PrintCreateDomainStatement(backupfile, tocfile, domainOne, emptyMetadata, checkConstraint)
+			backup.SetConstaints(checkConstraint)
+			backup.PrintCreateDomainStatement(backupfile, tocfile, domainOne, emptyMetadata)
 			testutils.ExpectEntry(tocfile.PredataEntries, 0, "public", "", "domain1", "DOMAIN")
 			testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `CREATE DOMAIN public.domain1 AS numeric DEFAULT 4 COLLATE public.mycollation NOT NULL
 	CONSTRAINT domain1_check CHECK (VALUE > 2);`)
 		})
 		It("prints a domain without constraint", func() {
-			backup.PrintCreateDomainStatement(backupfile, tocfile, domainOne, emptyMetadata, emptyConstraint)
+			backup.SetConstaints(emptyConstraint)
+			backup.PrintCreateDomainStatement(backupfile, tocfile, domainOne, emptyMetadata)
 			testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `CREATE DOMAIN public.domain1 AS numeric DEFAULT 4 COLLATE public.mycollation NOT NULL;`)
 		})
 		It("prints a domain without constraint with comment, security label, and owner", func() {
 			domainMetadata := testutils.DefaultMetadata("DOMAIN", false, true, true, true)
-			backup.PrintCreateDomainStatement(backupfile, tocfile, domainTwo, domainMetadata, emptyConstraint)
+			backup.SetConstaints(emptyConstraint)
+			backup.PrintCreateDomainStatement(backupfile, tocfile, domainTwo, domainMetadata)
 			expectedEntries := []string{"CREATE DOMAIN public.domain2 AS varchar;",
 				"COMMENT ON DOMAIN public.domain2 IS 'This is a domain comment.';",
 				"ALTER DOMAIN public.domain2 OWNER TO testrole;",

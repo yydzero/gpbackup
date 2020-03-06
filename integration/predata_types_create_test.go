@@ -42,9 +42,9 @@ var _ = Describe("backup integration create statement tests", func() {
 				SubTypeOpClass: "pg_catalog.text_ops",
 			}
 		})
-		Describe("PrintCreateShellTypeStatements", func() {
+		Describe("PrintCreateTypeStatements", func() {
 			It("creates shell types for base, shell and range types", func() {
-				backup.PrintCreateShellTypeStatements(backupfile, tocfile, []backup.ShellType{shellType}, []backup.BaseType{baseType}, []backup.RangeType{rangeType})
+				backup.PrintCreateTypeStatements(backupfile, tocfile, []backup.ShellType{shellType}, []backup.BaseType{baseType}, []backup.RangeType{rangeType})
 
 				testhelper.AssertQueryRuns(connectionPool, buffer.String())
 				defer testhelper.AssertQueryRuns(connectionPool, "DROP TYPE public.shell_type")
@@ -151,13 +151,14 @@ var _ = Describe("backup integration create statement tests", func() {
 				Oid: 1, Schema: "public", Name: "domain_type", BaseType: "character(8)", DefaultVal: "'abc'::bpchar", NotNull: true, Collation: ""}
 			It("creates domain types", func() {
 				constraints := make([]backup.Constraint, 0)
+				backup.SetConstaints(constraints)
 				if connectionPool.Version.AtLeast("6") {
 					testhelper.AssertQueryRuns(connectionPool, "CREATE COLLATION public.some_coll (lc_collate = 'POSIX', lc_ctype = 'POSIX')")
 					defer testhelper.AssertQueryRuns(connectionPool, "DROP COLLATION public.some_coll")
 					domainType.Collation = "public.some_coll"
 				}
 				metadata := testutils.DefaultMetadata("DOMAIN", false, true, true, includeSecurityLabels)
-				backup.PrintCreateDomainStatement(backupfile, tocfile, domainType, metadata, constraints)
+				backup.PrintCreateDomainStatement(backupfile, tocfile, domainType, metadata)
 
 				testhelper.AssertQueryRuns(connectionPool, buffer.String())
 				defer testhelper.AssertQueryRuns(connectionPool, "DROP TYPE public.domain_type")

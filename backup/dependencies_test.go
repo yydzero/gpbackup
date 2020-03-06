@@ -132,7 +132,8 @@ var _ = Describe("backup/dependencies tests", func() {
 			constraints := []backup.Constraint{
 				{Name: "check_constraint", ConDef: "CHECK (VALUE > 2)", OwningObject: "public.domain"},
 			}
-			backup.PrintDependentObjectStatements(backupfile, tocfile, objects, metadataMap, constraints, funcInfoMap)
+			backup.SetConstaints(constraints)
+			backup.PrintDependentObjectStatements(backupfile, tocfile, objects, metadataMap, funcInfoMap)
 			testhelper.ExpectRegexp(buffer, `
 CREATE FUNCTION public.function(integer, integer) RETURNS integer AS
 $_$SELECT $1 + $2$_$
@@ -179,7 +180,8 @@ COMMENT ON PROTOCOL ext_protocol IS 'protocol';
 		})
 		It("prints create statements for dependent types, functions, protocols, and tables (no domain constraint)", func() {
 			constraints := make([]backup.Constraint, 0)
-			backup.PrintDependentObjectStatements(backupfile, tocfile, objects, metadataMap, constraints, funcInfoMap)
+			backup.SetConstaints(constraints)
+			backup.PrintDependentObjectStatements(backupfile, tocfile, objects, metadataMap, funcInfoMap)
 			testhelper.ExpectRegexp(buffer, `
 CREATE FUNCTION public.function(integer, integer) RETURNS integer AS
 $_$SELECT $1 + $2$_$

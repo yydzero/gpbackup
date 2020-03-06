@@ -448,6 +448,10 @@ func (t RangeType) FQN() string {
 }
 
 func GetRangeTypes(connectionPool *dbconn.DBConn) []RangeType {
+	results := make([]RangeType, 0)
+	if !connectionPool.Version.AtLeast("6") {
+		return results
+	}
 	gplog.Verbose("Retrieving range types")
 	query := fmt.Sprintf(`
 	SELECT t.oid,
@@ -482,7 +486,6 @@ func GetRangeTypes(connectionPool *dbconn.DBConn) []RangeType {
 		AND t.typtype = 'r'
 		AND %s`, SchemaFilterClause("n"), ExtensionFilterClause("t"))
 
-	results := make([]RangeType, 0)
 	err := connectionPool.Select(&results, query)
 	gplog.FatalOnError(err)
 	return results

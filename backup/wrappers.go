@@ -169,17 +169,23 @@ func RetrieveAndProcessTables() ([]Table, []Table) {
 	return metadataTables, dataTables
 }
 
-func retrieveFunctions(sortables *[]Sortable, metadataMap MetadataMap, procLangs []ProceduralLanguage) ([]Function, MetadataMap) {
-	gplog.Verbose("Retrieving function information")
+func retrieveFunctions(sortables *[]Sortable, metadataMap MetadataMap) ([]Function, MetadataMap) {
+	gplog.Verbose("Retrieving FUNCTION information")
+	procLangs = GetProceduralLanguages(connectionPool)
 	functions := GetFunctionsAllVersions(connectionPool)
+	aggregates := GetAggregates(connectionPool)
 	objectCounts["Functions"] = len(functions)
-	functionMetadata := GetMetadataForObjectType(connectionPool, TYPE_FUNCTION)
+	objectCounts["Aggregates"] = len(aggregates)
+	funcMetadata := GetMetadataForObjectType(connectionPool, TYPE_FUNCTION)
+	aggMetadata := GetMetadataForObjectType(connectionPool, TYPE_AGGREGATE)
 	langFuncs, otherFuncs := ExtractLanguageFunctions(functions, procLangs)
 
 	*sortables = append(*sortables, convertToSortableSlice(otherFuncs)...)
-	addToMetadataMap(functionMetadata, metadataMap)
+	*sortables = append(*sortables, convertToSortableSlice(aggregates)...)
+	addToMetadataMap(funcMetadata, metadataMap)
+	addToMetadataMap(aggMetadata, metadataMap)
 
-	return langFuncs, functionMetadata
+	return langFuncs, funcMetadata
 }
 
 func retrieveAndBackupTypes(metadataFile *utils.FileWithByteCount, sortables *[]Sortable, metadataMap MetadataMap) {
@@ -188,53 +194,31 @@ func retrieveAndBackupTypes(metadataFile *utils.FileWithByteCount, sortables *[]
 	bases := GetBaseTypes(connectionPool)
 	composites := GetCompositeTypes(connectionPool)
 	domains := GetDomainTypes(connectionPool)
-	rangeTypes := make([]RangeType, 0)
-	if connectionPool.Version.AtLeast("6") {
-		rangeTypes = GetRangeTypes(connectionPool)
-	}
+	ranges := GetRangeTypes(connectionPool)
+	enums := GetEnumTypes(connectionPool)
 	typeMetadata := GetMetadataForObjectType(connectionPool, TYPE_TYPE)
 
-	backupShellTypes(metadataFile, shells, bases, rangeTypes)
-	if connectionPool.Version.AtLeast("5") {
-		backupEnumTypes(metadataFile, typeMetadata)
-	}
+	backupTypes(metadataFile, typeMetadata, shells, bases, ranges, enums)
 
-	objectCounts["Types"] += len(shells)
-	objectCounts["Types"] += len(bases)
-	objectCounts["Types"] += len(composites)
-	objectCounts["Types"] += len(domains)
-	objectCounts["Types"] += len(rangeTypes)
+	objectCounts["Types"] += len(shells) + len(bases) + len(composites) + len(domains) + len(ranges) + len(enums)
 	*sortables = append(*sortables, convertToSortableSlice(bases)...)
 	*sortables = append(*sortables, convertToSortableSlice(composites)...)
 	*sortables = append(*sortables, convertToSortableSlice(domains)...)
-	*sortables = append(*sortables, convertToSortableSlice(rangeTypes)...)
+	*sortables = append(*sortables, convertToSortableSlice(ranges)...)
+	*sortables = append(*sortables, convertToSortableSlice(enums)...)
 	addToMetadataMap(typeMetadata, metadataMap)
+	retrieveCasts(sortables, metadataMap)
 }
 
-func retrieveConstraints(tables ...Relation) ([]Constraint, MetadataMap) {
-	gplog.Verbose("Retrieving constraints")
-	constraints := GetConstraints(connectionPool, tables...)
-	conMetadata := GetCommentsForObjectType(connectionPool, TYPE_CONSTRAINT)
-	return constraints, conMetadata
-}
-
-func retrieveSequences() ([]Sequence, map[string]string) {
-	gplog.Verbose("Retrieving sequences")
-	sequenceOwnerTables, sequenceOwnerColumns := GetSequenceColumnOwnerMap(connectionPool)
-	sequences := GetAllSequences(connectionPool, sequenceOwnerTables)
-	return sequences, sequenceOwnerColumns
-}
-
-func retrieveProtocols(sortables *[]Sortable, metadataMap MetadataMap) []ExternalProtocol {
+func retrieveProtocols(sortables *[]Sortable, metadataMap MetadataMap) {
 	gplog.Verbose("Retrieving protocols")
-	protocols := GetExternalProtocols(connectionPool)
-	objectCounts["Protocols"] = len(protocols)
+	protocols = GetExternalProtocols(connectionPool)
 	protoMetadata := GetMetadataForObjectType(connectionPool, TYPE_PROTOCOL)
 
-	*sortables = append(*sortables, convertToSortableSlice(protocols)...)
+	objectCounts["Protocols"] = len(protocols)
+	objectMap["Protocols"] = convertToSortableSlice(protocols)
+	*sortables = append(*sortables, objectMap["Protocols"]...)
 	addToMetadataMap(protoMetadata, metadataMap)
-
-	return protocols
 }
 
 func retrieveViews(sortables *[]Sortable) {
@@ -244,6 +228,17 @@ func retrieveViews(sortables *[]Sortable) {
 
 	*sortables = append(*sortables, convertToSortableSlice(views)...)
 	*sortables = append(*sortables, convertToSortableSlice(materializedViews)...)
+}
+
+func retrieveTSObjects(sortables *[]Sortable, metadataMap MetadataMap) {
+	if !connectionPool.Version.AtLeast("5") {
+		return
+	}
+	gplog.Verbose("Retrieving Text Search Parsers")
+	retrieveTSParsers(sortables, metadataMap)
+	retrieveTSConfigurations(sortables, metadataMap)
+	retrieveTSTemplates(sortables, metadataMap)
+	retrieveTSDictionaries(sortables, metadataMap)
 }
 
 func retrieveTSParsers(sortables *[]Sortable, metadataMap MetadataMap) {
@@ -286,6 +281,11 @@ func retrieveTSConfigurations(sortables *[]Sortable, metadataMap MetadataMap) {
 	addToMetadataMap(configurationMetadata, metadataMap)
 }
 
+func retrieveOperatorObjects(sortables *[]Sortable, metadataMap MetadataMap) {
+	retrieveOperators(sortables, metadataMap)
+	retrieveOperatorClasses(sortables, metadataMap)
+}
+
 func retrieveOperators(sortables *[]Sortable, metadataMap MetadataMap) {
 	gplog.Verbose("Retrieving OPERATOR information")
 	operators := GetOperators(connectionPool)
@@ -306,21 +306,6 @@ func retrieveOperatorClasses(sortables *[]Sortable, metadataMap MetadataMap) {
 	addToMetadataMap(operatorClassMetadata, metadataMap)
 }
 
-func retrieveAggregates(sortables *[]Sortable, metadataMap MetadataMap) {
-	gplog.Verbose("Retrieving AGGREGATE information")
-	aggregates := GetAggregates(connectionPool)
-	objectCounts["Aggregates"] = len(aggregates)
-	/* This call to get Metadata for Aggregates, although redundant, is preserved for
-	 * consistency with other, similar methods.  The metadata for aggregate
-	 * are located on the same catalog table as functions (pg_proc). This means that when we
-	 * get function metadata we also get aggregate metadata at the same time.
-	 */
-	aggMetadata := GetMetadataForObjectType(connectionPool, TYPE_AGGREGATE)
-
-	*sortables = append(*sortables, convertToSortableSlice(aggregates)...)
-	addToMetadataMap(aggMetadata, metadataMap)
-}
-
 func retrieveCasts(sortables *[]Sortable, metadataMap MetadataMap) {
 	gplog.Verbose("Retrieving CAST information")
 	casts := GetCasts(connectionPool)
@@ -329,6 +314,15 @@ func retrieveCasts(sortables *[]Sortable, metadataMap MetadataMap) {
 
 	*sortables = append(*sortables, convertToSortableSlice(casts)...)
 	addToMetadataMap(castMetadata, metadataMap)
+}
+
+func retrieveFDWObjects(sortables *[]Sortable, metadataMap MetadataMap) {
+	if !connectionPool.Version.AtLeast("6") {
+		return
+	}
+	retrieveForeignDataWrappers(sortables, metadataMap)
+	retrieveForeignServers(sortables, metadataMap)
+	retrieveUserMappings(sortables)
 }
 
 func retrieveForeignDataWrappers(sortables *[]Sortable, metadataMap MetadataMap) {
@@ -402,6 +396,9 @@ func backupResourceQueues(metadataFile *utils.FileWithByteCount) {
 }
 
 func backupResourceGroups(metadataFile *utils.FileWithByteCount) {
+	if !connectionPool.Version.AtLeast("5") {
+		return
+	}
 	gplog.Verbose("Writing CREATE RESOURCE GROUP statements to metadata file")
 	resGroups := GetResourceGroups(connectionPool)
 	objectCounts["Resource Groups"] = len(resGroups)
@@ -442,30 +439,28 @@ func backupSchemas(metadataFile *utils.FileWithByteCount, partitionAlteredSchema
 	PrintCreateSchemaStatements(metadataFile, globalTOC, schemas, schemaMetadata)
 }
 
-func backupProceduralLanguages(metadataFile *utils.FileWithByteCount, procLangs []ProceduralLanguage, langFuncs []Function, functionMetadata MetadataMap, funcInfoMap map[uint32]FunctionInfo) {
+func backupProceduralLanguages(metadataFile *utils.FileWithByteCount, funcInfoMap map[uint32]FunctionInfo) {
+
 	gplog.Verbose("Writing CREATE PROCEDURAL LANGUAGE statements to metadata file")
 	objectCounts["Procedural Languages"] = len(procLangs)
 	for _, langFunc := range langFuncs {
-		PrintCreateFunctionStatement(metadataFile, globalTOC, langFunc, functionMetadata[langFunc.GetUniqueID()])
+		PrintCreateFunctionStatement(metadataFile, globalTOC, langFunc, metadataMap[langFunc.GetUniqueID()])
 	}
 	procLangMetadata := GetMetadataForObjectType(connectionPool, TYPE_PROCLANGUAGE)
 	PrintCreateLanguageStatements(metadataFile, globalTOC, procLangs, funcInfoMap, procLangMetadata)
 }
 
-func backupShellTypes(metadataFile *utils.FileWithByteCount, shellTypes []ShellType, baseTypes []BaseType, rangeTypes []RangeType) {
-	gplog.Verbose("Writing CREATE TYPE statements for shell types to metadata file")
-	PrintCreateShellTypeStatements(metadataFile, globalTOC, shellTypes, baseTypes, rangeTypes)
+func backupTypes(metadataFile *utils.FileWithByteCount, typeMetadata MetadataMap,
+	shellTypes []ShellType, baseTypes []BaseType, rangeTypes []RangeType, enumTypes []EnumType) {
+
+	gplog.Verbose("Writing CREATE TYPE statements for types to metadata file")
+	PrintCreateTypeStatements(metadataFile, globalTOC, shellTypes, baseTypes, rangeTypes)
+	PrintCreateEnumTypeStatements(metadataFile, globalTOC, enumTypes, typeMetadata)
 }
 
-func backupEnumTypes(metadataFile *utils.FileWithByteCount, typeMetadata MetadataMap) {
-	gplog.Verbose("Writing CREATE TYPE statements for enum types to metadata file")
-	enums := GetEnumTypes(connectionPool)
-	objectCounts["Types"] += len(enums)
-	PrintCreateEnumTypeStatements(metadataFile, globalTOC, enums, typeMetadata)
-}
-
-func backupCreateSequences(metadataFile *utils.FileWithByteCount, sequences []Sequence, sequenceOwnerColumns map[string]string, relationMetadata MetadataMap) {
+func backupSequences(metadataFile *utils.FileWithByteCount, relationMetadata MetadataMap) {
 	gplog.Verbose("Writing CREATE SEQUENCE statements to metadata file")
+	sequences = GetAllSequences(connectionPool)
 	objectCounts["Sequences"] = len(sequences)
 	PrintCreateSequenceStatements(metadataFile, globalTOC, sequences, relationMetadata)
 }
@@ -505,8 +500,8 @@ func addToMetadataMap(newMetadata MetadataMap, metadataMap MetadataMap) {
 
 // This function is fairly unwieldy, but there's not really a good way to break it down
 func backupDependentObjects(metadataFile *utils.FileWithByteCount, tables []Table,
-	protocols []ExternalProtocol, filteredMetadata MetadataMap, constraints []Constraint,
-	sortables []Sortable, funcInfoMap map[uint32]FunctionInfo, tableOnly bool) {
+	filteredMetadata MetadataMap, sortables []Sortable,
+	funcInfoMap map[uint32]FunctionInfo, tableOnly bool) {
 
 	gplog.Verbose("Writing CREATE statements for dependent objects to metadata file")
 
@@ -517,7 +512,7 @@ func backupDependentObjects(metadataFile *utils.FileWithByteCount, tables []Tabl
 	}
 	sortedSlice := TopologicalSort(sortables, relevantDeps)
 
-	PrintDependentObjectStatements(metadataFile, globalTOC, sortedSlice, filteredMetadata, constraints, funcInfoMap)
+	PrintDependentObjectStatements(metadataFile, globalTOC, sortedSlice, filteredMetadata, funcInfoMap)
 	extPartInfo, partInfoMap := GetExternalPartitionInfo(connectionPool)
 	if len(extPartInfo) > 0 {
 		gplog.Verbose("Writing EXCHANGE PARTITION statements to metadata file")
@@ -534,6 +529,9 @@ func backupConversions(metadataFile *utils.FileWithByteCount) {
 }
 
 func backupOperatorFamilies(metadataFile *utils.FileWithByteCount) {
+	if !connectionPool.Version.AtLeast("5") {
+		return
+	}
 	gplog.Verbose("Writing CREATE OPERATOR FAMILY statements to metadata file")
 	operatorFamilies := GetOperatorFamilies(connectionPool)
 	objectCounts["Operator Families"] = len(operatorFamilies)
@@ -542,6 +540,9 @@ func backupOperatorFamilies(metadataFile *utils.FileWithByteCount) {
 }
 
 func backupCollations(metadataFile *utils.FileWithByteCount) {
+	if !connectionPool.Version.AtLeast("6") {
+		return
+	}
 	gplog.Verbose("Writing CREATE COLLATION statements to metadata file")
 	collations := GetCollations(connectionPool)
 	objectCounts["Collations"] = len(collations)
@@ -550,6 +551,9 @@ func backupCollations(metadataFile *utils.FileWithByteCount) {
 }
 
 func backupExtensions(metadataFile *utils.FileWithByteCount) {
+	if len(MustGetFlagStringArray(options.INCLUDE_SCHEMA)) == 0 && connectionPool.Version.AtLeast("5") {
+		//backupExtensions(metadataFile)
+	}
 	gplog.Verbose("Writing CREATE EXTENSION statements to metadata file")
 	extensions := GetExtensions(connectionPool)
 	objectCounts["Extensions"] = len(extensions)
@@ -557,8 +561,10 @@ func backupExtensions(metadataFile *utils.FileWithByteCount) {
 	PrintCreateExtensionStatements(metadataFile, globalTOC, extensions, extensionMetadata)
 }
 
-func backupConstraints(metadataFile *utils.FileWithByteCount, constraints []Constraint, conMetadata MetadataMap) {
+func backupConstraints(metadataFile *utils.FileWithByteCount) {
 	gplog.Verbose("Writing ADD CONSTRAINT statements to metadata file")
+	constraints = GetConstraints(connectionPool)
+	conMetadata := GetCommentsForObjectType(connectionPool, TYPE_CONSTRAINT)
 	objectCounts["Constraints"] = len(constraints)
 	PrintConstraintStatements(metadataFile, globalTOC, constraints, conMetadata)
 }

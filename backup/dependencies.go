@@ -225,11 +225,7 @@ func breakCircularDependencies(depMap DependencyMap) {
 	}
 }
 
-func PrintDependentObjectStatements(metadataFile *utils.FileWithByteCount, toc *toc.TOC, objects []Sortable, metadataMap MetadataMap, constraints []Constraint, funcInfoMap map[uint32]FunctionInfo) {
-	conMap := make(map[string][]Constraint)
-	for _, constraint := range constraints {
-		conMap[constraint.OwningObject] = append(conMap[constraint.OwningObject], constraint)
-	}
+func PrintDependentObjectStatements(metadataFile *utils.FileWithByteCount, toc *toc.TOC, objects []Sortable, metadataMap MetadataMap, funcInfoMap map[uint32]FunctionInfo) {
 	for _, object := range objects {
 		objMetadata := metadataMap[object.GetUniqueID()]
 		switch obj := object.(type) {
@@ -238,7 +234,7 @@ func PrintDependentObjectStatements(metadataFile *utils.FileWithByteCount, toc *
 		case CompositeType:
 			PrintCreateCompositeTypeStatement(metadataFile, toc, obj, objMetadata)
 		case Domain:
-			PrintCreateDomainStatement(metadataFile, toc, obj, objMetadata, conMap[obj.FQN()])
+			PrintCreateDomainStatement(metadataFile, toc, obj, objMetadata)
 		case RangeType:
 			PrintCreateRangeTypeStatement(metadataFile, toc, obj, objMetadata)
 		case Function:
