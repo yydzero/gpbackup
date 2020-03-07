@@ -7,6 +7,7 @@ package backup
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/greenplum-db/gp-common-go-libs/dbconn"
 	"github.com/greenplum-db/gp-common-go-libs/gplog"
@@ -60,6 +61,79 @@ func (t BaseType) GetUniqueID() UniqueID {
 
 func (t BaseType) FQN() string {
 	return utils.MakeFQN(t.Schema, t.Name)
+}
+
+func (t BaseType) GetCreateStatement() string {
+	statement := fmt.Sprintf("\n\nCREATE TYPE %s (\n", t.FQN())
+
+	// All of the following functions are stored in quoted form and don't need to be quoted again
+	statement += fmt.Sprintf("\tINPUT = %s,\n\tOUTPUT = %s", t.Input, t.Output)
+	if t.Receive != "" {
+		statement += fmt.Sprintf(",\n\tRECEIVE = %s", t.Receive)
+	}
+	if t.Send != "" {
+		statement += fmt.Sprintf(",\n\tSEND = %s", t.Send)
+	}
+	if connectionPool.Version.AtLeast("5") {
+		if t.ModIn != "" {
+			statement += fmt.Sprintf(",\n\tTYPMOD_IN = %s", t.ModIn)
+		}
+		if t.ModOut != "" {
+			statement += fmt.Sprintf(",\n\tTYPMOD_OUT = %s", t.ModOut)
+		}
+	}
+	if t.InternalLength > 0 {
+		statement += fmt.Sprintf(",\n\tINTERNALLENGTH = %d", t.InternalLength)
+	}
+	if t.IsPassedByValue {
+		statement += fmt.Sprintf(",\n\tPASSEDBYVALUE")
+	}
+	if t.Alignment != "" {
+		switch t.Alignment {
+		case "d":
+			statement += fmt.Sprintf(",\n\tALIGNMENT = double")
+		case "i":
+			statement += fmt.Sprintf(",\n\tALIGNMENT = int4")
+		case "s":
+			statement += fmt.Sprintf(",\n\tALIGNMENT = int2")
+		case "c": // Default case, don't print anything else
+		}
+	}
+	if t.Storage != "" {
+		switch t.Storage {
+		case "e":
+			statement += fmt.Sprintf(",\n\tSTORAGE = external")
+		case "m":
+			statement += fmt.Sprintf(",\n\tSTORAGE = main")
+		case "x":
+			statement += fmt.Sprintf(",\n\tSTORAGE = extended")
+		case "p": // Default case, don't print anything else
+		}
+	}
+	if t.DefaultVal != "" {
+		statement += fmt.Sprintf(",\n\tDEFAULT = '%s'", t.DefaultVal)
+	}
+	if t.Element != "" {
+		statement += fmt.Sprintf(",\n\tELEMENT = %s", t.Element)
+	}
+	if t.Delimiter != "" {
+		statement += fmt.Sprintf(",\n\tDELIMITER = '%s'", t.Delimiter)
+	}
+	if t.Category != "U" {
+		statement += fmt.Sprintf(",\n\tCATEGORY = '%s'", t.Category)
+	}
+	if t.Preferred {
+		statement += fmt.Sprintf(",\n\tPREFERRED = true")
+	}
+	if t.Collatable {
+		statement += fmt.Sprintf(",\n\tCOLLATABLE = true")
+	}
+	statement += fmt.Sprintln("\n);")
+	if t.StorageOptions != "" {
+		statement += fmt.Sprintf("\nALTER TYPE %s\n\tSET DEFAULT ENCODING (%s);", t.FQN(), t.StorageOptions)
+	}
+
+	return statement
 }
 
 func GetBaseTypes(connectionPool *dbconn.DBConn) []BaseType {
@@ -212,6 +286,23 @@ func (t CompositeType) FQN() string {
 	return utils.MakeFQN(t.Schema, t.Name)
 }
 
+func (t CompositeType) GetCreateStatement() string {
+	var attributeList []string
+	for _, att := range t.Attributes {
+		collationStr := ""
+		if att.Collation != "" {
+			collationStr = fmt.Sprintf(" COLLATE %s", att.Collation)
+		}
+		attributeList = append(attributeList, fmt.Sprintf("\t%s %s%s", att.Name, att.Type, collationStr))
+	}
+
+	statement := fmt.Sprintf("\n\nCREATE TYPE %s AS (\n", t.FQN())
+	statement += fmt.Sprintln(strings.Join(attributeList, ",\n"))
+	statement += fmt.Sprintf(");")
+
+	return statement
+}
+
 func GetCompositeTypes(connectionPool *dbconn.DBConn) []CompositeType {
 	gplog.Verbose("Getting composite types")
 	query := fmt.Sprintf(`
@@ -330,6 +421,25 @@ func (t Domain) FQN() string {
 	return utils.MakeFQN(t.Schema, t.Name)
 }
 
+func (t Domain) GetCreateStatement() string {
+	statement := fmt.Sprintf("\nCREATE DOMAIN %s AS %s", t.FQN(), t.BaseType)
+	if t.DefaultVal != "" {
+		statement += fmt.Sprintf(" DEFAULT %s", t.DefaultVal)
+	}
+	if t.Collation != "" {
+		statement += fmt.Sprintf(" COLLATE %s", t.Collation)
+	}
+	if t.NotNull {
+		statement += fmt.Sprintf(" NOT NULL")
+	}
+	for _, constraint := range constraints {
+		statement += fmt.Sprintf("\n\tCONSTRAINT %s %s", constraint.Name, constraint.ConDef)
+	}
+	statement += fmt.Sprintln(";")
+
+	return statement
+}
+
 func GetDomainTypes(connectionPool *dbconn.DBConn) []Domain {
 	gplog.Verbose("Getting domain types")
 	results := make([]Domain, 0)
@@ -399,6 +509,10 @@ func (t EnumType) FQN() string {
 	return utils.MakeFQN(t.Schema, t.Name)
 }
 
+func (t EnumType) GetCreateStatement() string {
+	return fmt.Sprintf("\n\nCREATE TYPE %s AS ENUM (\n\t%s\n);\n", t.FQN(), t.EnumLabels)
+}
+
 func GetEnumTypes(connectionPool *dbconn.DBConn) []EnumType {
 	enumSortClause := "ORDER BY e.enumsortorder"
 	if connectionPool.Version.Is("5") {
@@ -445,6 +559,26 @@ func (t RangeType) GetUniqueID() UniqueID {
 
 func (t RangeType) FQN() string {
 	return utils.MakeFQN(t.Schema, t.Name)
+}
+
+func (t RangeType) GetCreateStatement() string {
+	statement := fmt.Sprintf("\n\nCREATE TYPE %s AS RANGE (\n\tSUBTYPE = %s", t.FQN(), t.SubType)
+
+	if t.SubTypeOpClass != "" {
+		statement += fmt.Sprintf(",\n\tSUBTYPE_OPCLASS = %s", t.SubTypeOpClass)
+	}
+	if t.Collation != "" {
+		statement += fmt.Sprintf(",\n\tCOLLATION = %s", t.Collation)
+	}
+	if t.Canonical != "" {
+		statement += fmt.Sprintf(",\n\tCANONICAL = %s", t.Canonical)
+	}
+	if t.SubTypeDiff != "" {
+		statement += fmt.Sprintf(",\n\tSUBTYPE_DIFF = %s", t.SubTypeDiff)
+	}
+	statement += fmt.Sprintf("\n);\n")
+
+	return statement
 }
 
 func GetRangeTypes(connectionPool *dbconn.DBConn) []RangeType {
@@ -554,6 +688,10 @@ func (c Collation) GetUniqueID() UniqueID {
 
 func (c Collation) FQN() string {
 	return utils.MakeFQN(c.Schema, c.Name)
+}
+
+func (c Collation) GetCreateStatement() string {
+	return fmt.Sprintf("\nCREATE COLLATION %s (LC_COLLATE = '%s', LC_CTYPE = '%s');", c.FQN(), c.Collate, c.Ctype)
 }
 
 func GetCollations(connectionPool *dbconn.DBConn) []Collation {
