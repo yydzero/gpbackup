@@ -7,6 +7,7 @@ package backup
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/greenplum-db/gp-common-go-libs/dbconn"
 	"github.com/greenplum-db/gp-common-go-libs/gplog"
@@ -55,6 +56,46 @@ func (o Operator) FQN() string {
 		rightArg = o.RightArgType
 	}
 	return fmt.Sprintf("%s.%s (%s, %s)", o.Schema, o.Name, leftArg, rightArg)
+}
+
+func (o Operator) GetCreateStatement() string {
+	optionalFields := make([]string, 0)
+	var leftArg string
+	var rightArg string
+	if o.LeftArgType != "-" {
+		leftArg = o.LeftArgType
+		optionalFields = append(optionalFields, fmt.Sprintf("LEFTARG = %s", leftArg))
+	}
+	if o.RightArgType != "-" {
+		rightArg = o.RightArgType
+		optionalFields = append(optionalFields, fmt.Sprintf("RIGHTARG = %s", rightArg))
+	}
+	if o.CommutatorOp != "0" {
+		optionalFields = append(optionalFields, fmt.Sprintf("COMMUTATOR = OPERATOR(%s)", o.CommutatorOp))
+	}
+	if o.NegatorOp != "0" {
+		optionalFields = append(optionalFields, fmt.Sprintf("NEGATOR = OPERATOR(%s)", o.NegatorOp))
+	}
+	if o.RestrictFunction != "-" {
+		optionalFields = append(optionalFields, fmt.Sprintf("RESTRICT = %s", o.RestrictFunction))
+	}
+	if o.JoinFunction != "-" {
+		optionalFields = append(optionalFields, fmt.Sprintf("JOIN = %s", o.JoinFunction))
+	}
+	if o.CanHash {
+		optionalFields = append(optionalFields, "HASHES")
+	}
+	if o.CanMerge {
+		optionalFields = append(optionalFields, "MERGES")
+	}
+	statement := fmt.Sprintf(`
+
+CREATE OPERATOR %s.%s (
+	PROCEDURE = %s,
+	%s
+);`, o.Schema, o.Name, o.Procedure, strings.Join(optionalFields, ",\n\t"))
+
+	return statement
 }
 
 func GetOperators(connectionPool *dbconn.DBConn) []Operator {
@@ -135,6 +176,10 @@ func (opf OperatorFamily) FQN() string {
 	return fmt.Sprintf("%s USING %s", utils.MakeFQN(opf.Schema, opf.Name), opf.IndexMethod)
 }
 
+func (opf OperatorFamily) GetCreateStatement() string {
+	return fmt.Sprintf("\n\nCREATE OPERATOR FAMILY %s;", opf.FQN())
+}
+
 func GetOperatorFamilies(connectionPool *dbconn.DBConn) []OperatorFamily {
 	results := make([]OperatorFamily, 0)
 	query := fmt.Sprintf(`
@@ -184,6 +229,52 @@ func (opc OperatorClass) GetUniqueID() UniqueID {
 
 func (opc OperatorClass) FQN() string {
 	return fmt.Sprintf("%s USING %s", utils.MakeFQN(opc.Schema, opc.Name), opc.IndexMethod)
+}
+
+func (opc OperatorClass) GetCreateStatement() string {
+	statement := fmt.Sprintf("\n\nCREATE OPERATOR CLASS %s.%s", opc.Schema, opc.Name)
+	forTypeStr := ""
+	if opc.Default {
+		forTypeStr += "DEFAULT "
+	}
+	forTypeStr += fmt.Sprintf("FOR TYPE %s USING %s", opc.Type, opc.IndexMethod)
+	if opc.FamilyName != "" && opc.FamilyName != opc.Name {
+		operatorFamilyFQN := utils.MakeFQN(opc.FamilySchema, opc.FamilyName)
+		forTypeStr += fmt.Sprintf(" FAMILY %s", operatorFamilyFQN)
+	}
+	statement += fmt.Sprintf("\n\t%s", forTypeStr)
+	opClassClauses := make([]string, 0)
+	if len(opc.Operators) != 0 {
+		for _, operator := range opc.Operators {
+			opStr := fmt.Sprintf("OPERATOR %d %s", operator.StrategyNumber, operator.Operator)
+			if operator.Recheck {
+				opStr += " RECHECK"
+			}
+			if operator.OrderByFamily != "" {
+				opStr += fmt.Sprintf(" FOR ORDER BY %s", operator.OrderByFamily)
+			}
+			opClassClauses = append(opClassClauses, opStr)
+		}
+	}
+	if len(opc.Functions) != 0 {
+		for _, function := range opc.Functions {
+			var typeClause string
+			if (function.LeftType != "") && (function.RightType != "") {
+				typeClause = fmt.Sprintf("(%s, %s) ", function.LeftType, function.RightType)
+			}
+			opClassClauses = append(opClassClauses, fmt.Sprintf("FUNCTION %d %s%s", function.SupportNumber, typeClause, function.FunctionName))
+		}
+	}
+	if opc.StorageType != "-" || len(opClassClauses) == 0 {
+		storageType := opc.StorageType
+		if opc.StorageType == "-" {
+			storageType = opc.Type
+		}
+		opClassClauses = append(opClassClauses, fmt.Sprintf("STORAGE %s", storageType))
+	}
+	statement += fmt.Sprintf(" AS\n\t%s;", strings.Join(opClassClauses, ",\n\t"))
+
+	return statement
 }
 
 func GetOperatorClasses(connectionPool *dbconn.DBConn) []OperatorClass {
