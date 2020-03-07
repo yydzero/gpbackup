@@ -63,6 +63,58 @@ func (f Function) FQN() string {
 	return fmt.Sprintf("%s.%s(%s)", f.Schema, f.Name, f.IdentArgs)
 }
 
+func (f Function) GetFunctionModifiers() string {
+	statement := ""
+	switch f.DataAccess {
+	case "c":
+		statement += fmt.Sprintf(" CONTAINS SQL")
+	case "m":
+		statement += fmt.Sprintf(" MODIFIES SQL DATA")
+	case "n":
+		statement += fmt.Sprintf(" NO SQL")
+	case "r":
+		statement += fmt.Sprintf(" READS SQL DATA")
+	}
+	switch f.Volatility {
+	case "i":
+		statement += fmt.Sprintf(" IMMUTABLE")
+	case "s":
+		statement += fmt.Sprintf(" STABLE")
+	case "v": // Default case, don't print anything else
+	}
+	switch f.ExecLocation {
+	case "m":
+		statement += fmt.Sprintf(" EXECUTE ON MASTER")
+	case "s":
+		statement += fmt.Sprintf(" EXECUTE ON ALL SEGMENTS")
+	case "a": // Default case, don't print anything else
+	}
+	if f.IsWindow {
+		statement += fmt.Sprintf(" WINDOW")
+	}
+	if f.IsStrict {
+		statement += fmt.Sprintf(" STRICT")
+	}
+	if f.IsLeakProof {
+		statement += fmt.Sprintf(" LEAKPROOF")
+	}
+	if f.IsSecurityDefiner {
+		statement += fmt.Sprintf(" SECURITY DEFINER")
+	}
+	// Default cost is 1 for C and internal functions or 100 for functions in other languages
+	isInternalOrC := f.Language == "c" || f.Language == "internal"
+	if !((!isInternalOrC && f.Cost == 100) || (isInternalOrC && f.Cost == 1) || f.Cost == 0) {
+		statement += fmt.Sprintf("\nCOST %v", f.Cost)
+	}
+	if f.ReturnsSet && f.NumRows != 0 && f.NumRows != 1000 {
+		statement += fmt.Sprintf("\nROWS %v", f.NumRows)
+	}
+	if f.Config != "" {
+		statement += fmt.Sprintf("\n%s", f.Config)
+	}
+	return statement
+}
+
 /*
  * The functions pg_get_function_arguments, pg_getfunction_identity_arguments,
  * and pg_get_function_result were introduced in GPDB 5, so we can use those
@@ -379,6 +431,77 @@ func (a Aggregate) FQN() string {
 	return fmt.Sprintf("%s.%s(%s)", a.Schema, a.Name, identArgumentsStr)
 }
 
+func (a Aggregate) GetCreateStatement(funcInfoMap map[uint32]FunctionInfo) string {
+	statement := ""
+	orderedStr := ""
+	if a.IsOrdered {
+		orderedStr = "ORDERED "
+	}
+	argumentsStr := "*"
+	if a.Arguments != "" {
+		argumentsStr = a.Arguments
+	}
+	statement += fmt.Sprintf("\n\nCREATE %sAGGREGATE %s.%s(%s) (\n", orderedStr, a.Schema, a.Name, argumentsStr)
+
+	statement += fmt.Sprintf("\tSFUNC = %s,\n", funcInfoMap[a.TransitionFunction].QualifiedName)
+	statement += fmt.Sprintf("\tSTYPE = %s", a.TransitionDataType)
+
+	if a.TransitionDataSize != 0 {
+		statement += fmt.Sprintf(",\n\tSSPACE = %d", a.TransitionDataSize)
+	}
+	if a.PreliminaryFunction != 0 {
+		statement += fmt.Sprintf(",\n\tPREFUNC = %s", funcInfoMap[a.PreliminaryFunction].QualifiedName)
+	}
+	if a.CombineFunction != 0 {
+		statement += fmt.Sprintf(",\n\tCOMBINEFUNC = %s", funcInfoMap[a.CombineFunction].QualifiedName)
+	}
+	if a.SerialFunction != 0 {
+		statement += fmt.Sprintf(",\n\tSERIALFUNC = %s", funcInfoMap[a.SerialFunction].QualifiedName)
+	}
+	if a.DeserialFunction != 0 {
+		statement += fmt.Sprintf(",\n\tDESERIALFUNC = %s", funcInfoMap[a.DeserialFunction].QualifiedName)
+	}
+	if a.FinalFunction != 0 {
+		statement += fmt.Sprintf(",\n\tFINALFUNC = %s", funcInfoMap[a.FinalFunction].QualifiedName)
+	}
+	if a.FinalFuncExtra {
+		statement += fmt.Sprintf(",\n\tFINALFUNC_EXTRA")
+	}
+	if !a.InitValIsNull {
+		statement += fmt.Sprintf(",\n\tINITCOND = '%s'", a.InitialValue)
+	}
+	if a.SortOperator != "" {
+		statement += fmt.Sprintf(",\n\tSORTOP = %s.\"%s\"", a.SortOperatorSchema, a.SortOperator)
+	}
+	if a.Hypothetical {
+		statement += fmt.Sprintf(",\n\tHYPOTHETICAL")
+	}
+	if a.MTransitionFunction != 0 {
+		statement += fmt.Sprintf(",\n\tMSFUNC = %s", funcInfoMap[a.MTransitionFunction].QualifiedName)
+	}
+	if a.MInverseTransitionFunction != 0 {
+		statement += fmt.Sprintf(",\n\tMINVFUNC = %s", funcInfoMap[a.MInverseTransitionFunction].QualifiedName)
+	}
+	if a.MTransitionDataType != "" {
+		statement += fmt.Sprintf(",\n\tMSTYPE = %s", a.MTransitionDataType)
+	}
+	if a.MTransitionDataSize != 0 {
+		statement += fmt.Sprintf(",\n\tMSSPACE = %d", a.MTransitionDataSize)
+	}
+	if a.MFinalFunction != 0 {
+		statement += fmt.Sprintf(",\n\tMFINALFUNC = %s", funcInfoMap[a.MFinalFunction].QualifiedName)
+	}
+	if a.MFinalFuncExtra {
+		statement += fmt.Sprintf(",\n\tMFINALFUNC_EXTRA")
+	}
+	if !a.MInitValIsNull {
+		statement += fmt.Sprintf(",\n\tMINITCOND = '%s'", a.MInitialValue)
+	}
+	statement += fmt.Sprintln("\n);")
+
+	return statement
+}
+
 func GetAggregates(connectionPool *dbconn.DBConn) []Aggregate {
 	version4query := fmt.Sprintf(`
 	SELECT p.oid,
@@ -580,6 +703,29 @@ func (c Cast) FQN() string {
 	return fmt.Sprintf("(%s AS %s)", c.SourceTypeFQN, c.TargetTypeFQN)
 }
 
+func (c Cast) GetCreateStatement() string {
+	statement := fmt.Sprintf("\n\nCREATE CAST %s\n", c.FQN())
+	switch c.CastMethod {
+	case "i":
+		statement += fmt.Sprintf("\tWITH INOUT")
+	case "b":
+		statement += fmt.Sprintf("\tWITHOUT FUNCTION")
+	case "f":
+		funcFQN := utils.MakeFQN(c.FunctionSchema, c.FunctionName)
+		statement += fmt.Sprintf("\tWITH FUNCTION %s(%s)", funcFQN, c.FunctionArgs)
+	}
+	switch c.CastContext {
+	case "a":
+		statement += fmt.Sprintf("\nAS ASSIGNMENT")
+	case "i":
+		statement += fmt.Sprintf("\nAS IMPLICIT")
+	case "e": // Default case, don't print anything else
+	}
+	statement += fmt.Sprintf(";")
+
+	return statement
+}
+
 func GetCasts(connectionPool *dbconn.DBConn) []Cast {
 	/* This query retrieves all casts where either the source type, the target
 	 * type, or the cast function is user-defined.
@@ -704,6 +850,43 @@ func (pl ProceduralLanguage) FQN() string {
 	return pl.Name
 }
 
+func (pl ProceduralLanguage) GetCreateStatement(funcInfoMap map[uint32]FunctionInfo) string {
+	statement := fmt.Sprintf("\n\nCREATE ")
+	if pl.PlTrusted {
+		statement += fmt.Sprintf("TRUSTED ")
+	}
+	statement += fmt.Sprintf("PROCEDURAL LANGUAGE %s", pl.Name)
+	paramsStr := ""
+	alterStr := ""
+	/*
+	 * If the handler, validator, and inline functions are in pg_pltemplate, we can
+	 * back up a CREATE LANGUAGE command without specifying them individually.
+	 *
+	 * The schema of the handler function should match the schema of the language itself, but
+	 * the inline and validator functions can be in a different schema and must be schema-qualified.
+	 */
+
+	if pl.Handler != 0 {
+		handlerInfo := funcInfoMap[pl.Handler]
+		paramsStr += fmt.Sprintf(" HANDLER %s", handlerInfo.QualifiedName)
+		alterStr += fmt.Sprintf("\nALTER FUNCTION %s(%s) OWNER TO %s;", handlerInfo.QualifiedName, handlerInfo.Arguments, pl.Owner)
+	}
+	if pl.Inline != 0 {
+		inlineInfo := funcInfoMap[pl.Inline]
+		paramsStr += fmt.Sprintf(" INLINE %s", inlineInfo.QualifiedName)
+		alterStr += fmt.Sprintf("\nALTER FUNCTION %s(%s) OWNER TO %s;", inlineInfo.QualifiedName, inlineInfo.Arguments, pl.Owner)
+	}
+	if pl.Validator != 0 {
+		validatorInfo := funcInfoMap[pl.Validator]
+		paramsStr += fmt.Sprintf(" VALIDATOR %s", validatorInfo.QualifiedName)
+		alterStr += fmt.Sprintf("\nALTER FUNCTION %s(%s) OWNER TO %s;", validatorInfo.QualifiedName, validatorInfo.Arguments, pl.Owner)
+	}
+	statement += fmt.Sprintf("%s;", paramsStr)
+	statement += fmt.Sprint(alterStr)
+
+	return statement
+}
+
 func GetProceduralLanguages(connectionPool *dbconn.DBConn) []ProceduralLanguage {
 	results := make([]ProceduralLanguage, 0)
 	// Languages are owned by the bootstrap superuser, OID 10
@@ -772,6 +955,15 @@ func (c Conversion) FQN() string {
 	return utils.MakeFQN(c.Schema, c.Name)
 }
 
+func (c Conversion) GetCreateStatement() string {
+	defaultStr := ""
+	if c.IsDefault {
+		defaultStr = " DEFAULT"
+	}
+	return fmt.Sprintf("\n\nCREATE%s CONVERSION %s FOR '%s' TO '%s' FROM %s;",
+		defaultStr, c.FQN(), c.ForEncoding, c.ToEncoding, c.ConversionFunction)
+}
+
 func GetConversions(connectionPool *dbconn.DBConn) []Conversion {
 	results := make([]Conversion, 0)
 	query := fmt.Sprintf(`
@@ -823,6 +1015,23 @@ func (fdw ForeignDataWrapper) FQN() string {
 	return fdw.Name
 }
 
+func (fdw ForeignDataWrapper) GetCreateStatement(funcInfoMap map[uint32]FunctionInfo) string {
+	statement := fmt.Sprintf("\n\nCREATE FOREIGN DATA WRAPPER %s", fdw.Name)
+
+	if fdw.Handler != 0 {
+		statement += fmt.Sprintf("\n\tHANDLER %s", funcInfoMap[fdw.Handler].QualifiedName)
+	}
+	if fdw.Validator != 0 {
+		statement += fmt.Sprintf("\n\tVALIDATOR %s", funcInfoMap[fdw.Validator].QualifiedName)
+	}
+	if fdw.Options != "" {
+		statement += fmt.Sprintf("\n\tOPTIONS (%s)", fdw.Options)
+	}
+	statement += fmt.Sprintf(";")
+
+	return statement
+}
+
 func GetForeignDataWrappers(connectionPool *dbconn.DBConn) []ForeignDataWrapper {
 	results := make([]ForeignDataWrapper, 0)
 	query := fmt.Sprintf(`
@@ -868,6 +1077,23 @@ func (fs ForeignServer) GetUniqueID() UniqueID {
 
 func (fs ForeignServer) FQN() string {
 	return fs.Name
+}
+
+func (fs ForeignServer) GetCreateStatement() string {
+	statement := fmt.Sprintf("\n\nCREATE SERVER %s", fs.Name)
+	if fs.Type != "" {
+		statement += fmt.Sprintf("\n\tTYPE '%s'", fs.Type)
+	}
+	if fs.Version != "" {
+		statement += fmt.Sprintf("\n\tVERSION '%s'", fs.Version)
+	}
+	statement += fmt.Sprintf("\n\tFOREIGN DATA WRAPPER %s", fs.ForeignDataWrapper)
+	if fs.Options != "" {
+		statement += fmt.Sprintf("\n\tOPTIONS (%s)", fs.Options)
+	}
+	statement += fmt.Sprintf(";")
+
+	return statement
 }
 
 func GetForeignServers(connectionPool *dbconn.DBConn) []ForeignServer {
@@ -916,6 +1142,16 @@ func (um UserMapping) GetUniqueID() UniqueID {
 func (um UserMapping) FQN() string {
 	// User mappings don't have a unique name, so we construct an arbitrary identifier
 	return fmt.Sprintf("%s ON %s", um.User, um.Server)
+}
+
+func (um UserMapping) GetCreateStatement() string {
+	statement := fmt.Sprintf("\n\nCREATE USER MAPPING FOR %s\n\tSERVER %s", um.User, um.Server)
+	if um.Options != "" {
+		statement += fmt.Sprintf("\n\tOPTIONS (%s)", um.Options)
+	}
+	statement += fmt.Sprintf(";")
+
+	return statement
 }
 
 func GetUserMappings(connectionPool *dbconn.DBConn) []UserMapping {
