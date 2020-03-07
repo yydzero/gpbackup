@@ -10,7 +10,6 @@ package backup
 
 import (
 	"fmt"
-
 	"github.com/greenplum-db/gp-common-go-libs/dbconn"
 	"github.com/greenplum-db/gp-common-go-libs/gplog"
 	"github.com/greenplum-db/gpbackup/toc"
@@ -46,6 +45,19 @@ func (tsp TextSearchParser) GetUniqueID() UniqueID {
 
 func (tsp TextSearchParser) FQN() string {
 	return utils.MakeFQN(tsp.Schema, tsp.Name)
+}
+
+func (tsp TextSearchParser) GetCreateStatement() string {
+	statement := fmt.Sprintf("\n\nCREATE TEXT SEARCH PARSER %s (", tsp.FQN())
+	statement += fmt.Sprintf("\n\tSTART = %s,", tsp.StartFunc)
+	statement += fmt.Sprintf("\n\tGETTOKEN = %s,", tsp.TokenFunc)
+	statement += fmt.Sprintf("\n\tEND = %s,", tsp.EndFunc)
+	statement += fmt.Sprintf("\n\tLEXTYPES = %s", tsp.LexTypesFunc)
+	if tsp.HeadlineFunc != "" {
+		statement += fmt.Sprintf(",\n\tHEADLINE = %s", tsp.HeadlineFunc)
+	}
+	statement += fmt.Sprintf("\n);")
+	return statement
 }
 
 func GetTextSearchParsers(connectionPool *dbconn.DBConn) []TextSearchParser {
@@ -101,6 +113,16 @@ func (tst TextSearchTemplate) FQN() string {
 	return utils.MakeFQN(tst.Schema, tst.Name)
 }
 
+func (tst TextSearchTemplate) GetCreateStatement() string {
+	statement := fmt.Sprintf("\n\nCREATE TEXT SEARCH TEMPLATE %s (", tst.FQN())
+	if tst.InitFunc != "" {
+		statement += fmt.Sprintf("\n\tINIT = %s,", tst.InitFunc)
+	}
+	statement += fmt.Sprintf("\n\tLEXIZE = %s", tst.LexizeFunc)
+	statement += fmt.Sprintf("\n);")
+	return statement
+}
+
 func GetTextSearchTemplates(connectionPool *dbconn.DBConn) []TextSearchTemplate {
 	query := fmt.Sprintf(`
 	SELECT p.oid,
@@ -152,6 +174,16 @@ func (tsd TextSearchDictionary) FQN() string {
 	return utils.MakeFQN(tsd.Schema, tsd.Name)
 }
 
+func (tsd TextSearchDictionary) GetCreateStatement() string {
+	statement := fmt.Sprintf("\n\nCREATE TEXT SEARCH DICTIONARY %s (", tsd.FQN())
+	statement += fmt.Sprintf("\n\tTEMPLATE = %s", tsd.Template)
+	if tsd.InitOption != "" {
+		statement += fmt.Sprintf(",\n\t%s", tsd.InitOption)
+	}
+	statement += fmt.Sprintf("\n);")
+	return statement
+}
+
 func GetTextSearchDictionaries(connectionPool *dbconn.DBConn) []TextSearchDictionary {
 	query := fmt.Sprintf(`
 	SELECT d.oid,
@@ -200,6 +232,13 @@ func (tsc TextSearchConfiguration) GetUniqueID() UniqueID {
 
 func (tsc TextSearchConfiguration) FQN() string {
 	return utils.MakeFQN(tsc.Schema, tsc.Name)
+}
+
+func (tsc TextSearchConfiguration) GetCreateStatement() string {
+	statement := fmt.Sprintf("\n\nCREATE TEXT SEARCH CONFIGURATION %s (", tsc.FQN())
+	statement += fmt.Sprintf("\n\tPARSER = %s", tsc.Parser)
+	statement += fmt.Sprintf("\n);")
+	return statement
 }
 
 func GetTextSearchConfigurations(connectionPool *dbconn.DBConn) []TextSearchConfiguration {
