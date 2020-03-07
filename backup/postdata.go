@@ -11,7 +11,8 @@ import (
 	"github.com/greenplum-db/gpbackup/utils"
 )
 
-func PrintCreateIndexStatements(metadataFile *utils.FileWithByteCount, toc *toc.TOC, indexes []IndexDefinition, indexMetadata MetadataMap) {
+func PrintCreateIndexStatements(metadataFile *utils.FileWithByteCount,
+	toc *toc.TOC, indexes []IndexDefinition, indexMetadata MetadataMap) {
 	for _, index := range indexes {
 		start := metadataFile.ByteCount
 		if !index.SupportsConstraint {
@@ -42,10 +43,11 @@ func PrintCreateIndexStatements(metadataFile *utils.FileWithByteCount, toc *toc.
 	}
 }
 
-func PrintCreateRuleStatements(metadataFile *utils.FileWithByteCount, toc *toc.TOC, rules []RuleDefinition, ruleMetadata MetadataMap) {
+func PrintCreateRuleStatements(metadataFile *utils.FileWithByteCount,
+	toc *toc.TOC, rules []RuleDefinition, ruleMetadata MetadataMap) {
 	for _, rule := range rules {
 		start := metadataFile.ByteCount
-		metadataFile.MustPrintf("\n\n%s", rule.Def)
+		metadataFile.MustPrintf(rule.GetCreateStatement())
 
 		section, entry := rule.GetMetadataEntry()
 		toc.AddMetadataEntry(section, entry, start, metadataFile.ByteCount)
@@ -54,10 +56,11 @@ func PrintCreateRuleStatements(metadataFile *utils.FileWithByteCount, toc *toc.T
 	}
 }
 
-func PrintCreateTriggerStatements(metadataFile *utils.FileWithByteCount, toc *toc.TOC, triggers []TriggerDefinition, triggerMetadata MetadataMap) {
+func PrintCreateTriggerStatements(metadataFile *utils.FileWithByteCount,
+	toc *toc.TOC, triggers []TriggerDefinition, triggerMetadata MetadataMap) {
 	for _, trigger := range triggers {
 		start := metadataFile.ByteCount
-		metadataFile.MustPrintf("\n\n%s;", trigger.Def)
+		metadataFile.MustPrintf(trigger.GetCreateStatement())
 
 		section, entry := trigger.GetMetadataEntry()
 		toc.AddMetadataEntry(section, entry, start, metadataFile.ByteCount)
@@ -66,34 +69,14 @@ func PrintCreateTriggerStatements(metadataFile *utils.FileWithByteCount, toc *to
 	}
 }
 
-func PrintCreateEventTriggerStatements(metadataFile *utils.FileWithByteCount, toc *toc.TOC, eventTriggers []EventTrigger, eventTriggerMetadata MetadataMap) {
+func PrintCreateEventTriggerStatements(metadataFile *utils.FileWithByteCount,
+	toc *toc.TOC, eventTriggers []EventTrigger, eventTriggerMetadata MetadataMap) {
 	for _, eventTrigger := range eventTriggers {
 		start := metadataFile.ByteCount
 		section, entry := eventTrigger.GetMetadataEntry()
 
-		metadataFile.MustPrintf("\n\nCREATE EVENT TRIGGER %s\nON %s", eventTrigger.Name, eventTrigger.Event)
-		if eventTrigger.EventTags != "" {
-			metadataFile.MustPrintf("\nWHEN TAG IN (%s)", eventTrigger.EventTags)
-		}
-		metadataFile.MustPrintf("\nEXECUTE PROCEDURE %s();", eventTrigger.FunctionName)
+		metadataFile.MustPrintf(eventTrigger.GetCreateStatements())
 		toc.AddMetadataEntry(section, entry, start, metadataFile.ByteCount)
-
-		if eventTrigger.Enabled != "O" {
-			var enableOption string
-			switch eventTrigger.Enabled {
-			case "D":
-				enableOption = "DISABLE"
-			case "A":
-				enableOption = "ENABLE ALWAYS"
-			case "R":
-				enableOption = "ENABLE REPLICA"
-			default:
-				enableOption = "ENABLE"
-			}
-			start := metadataFile.ByteCount
-			metadataFile.MustPrintf("\nALTER EVENT TRIGGER %s %s;", eventTrigger.Name, enableOption)
-			toc.AddMetadataEntry(section, entry, start, metadataFile.ByteCount)
-		}
 		PrintObjectMetadata(metadataFile, toc, eventTriggerMetadata[eventTrigger.GetUniqueID()], eventTrigger, "")
 	}
 }

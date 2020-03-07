@@ -53,6 +53,14 @@ func (s Schema) FQN() string {
 	return s.Name
 }
 
+func (s Schema) GetCreateStatement() string {
+	statement := fmt.Sprintln()
+	if s.Name != "public" {
+		statement += fmt.Sprintf("\nCREATE SCHEMA %s;", s.Name)
+	}
+	return statement
+}
+
 func GetAllUserSchemas(connectionPool *dbconn.DBConn, partitionAlteredSchemas map[string]bool) []Schema {
 	/*
 	 * This query is constructed from scratch, but the list of schemas to exclude
@@ -107,8 +115,23 @@ func (c Constraint) FQN() string {
 	return c.Name
 }
 
+func (c Constraint) GetCreateStatements() string {
+	alterStr := "\n\nALTER %s %s ADD CONSTRAINT %s %s;\n"
+	objStr := "TABLE ONLY"
+	if c.IsPartitionParent || (c.ConType == "c" && c.ConIsLocal) {
+		objStr = "TABLE"
+	}
+	return fmt.Sprintf(alterStr, objStr, c.OwningObject, c.Name, c.ConDef)
+}
+
 func GetConstraints(connectionPool *dbconn.DBConn, includeTables ...Relation) []Constraint {
-	// ConIsLocal should always return true from GetConstraints because we filter out constraints that are inherited using the INHERITS clause, or inherited from a parent partition table. This field only accurately reflects constraints in GPDB6+ because check constraints on parent tables must propogate to children. For GPDB versions 5 or lower, this field will default to false.
+	/*
+	 * ConIsLocal should always return true from GetConstraints because we filter out
+	 * constraints that are inherited using the INHERITS clause, or inherited from a
+	 * parent partition table. This field only accurately reflects constraints in
+	 * GPDB6+ because check constraints on parent tables must propogate to children.
+	 * For GPDB versions 5 or lower, this field will default to false.
+	 */
 	var selectConIsLocal string
 	var groupByConIsLocal string
 	if connectionPool.Version.AtLeast("6") {

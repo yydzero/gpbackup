@@ -175,6 +175,10 @@ func (r RuleDefinition) FQN() string {
 	return r.Name
 }
 
+func (r RuleDefinition) GetCreateStatement() string {
+	return fmt.Sprintf("\n\n%s", r.Def)
+}
+
 /*
  * Rules named "_RETURN", "pg_settings_n", and "pg_settings_u" are
  * built-in rules and we don't want to back them up. We use two `%` to
@@ -224,6 +228,10 @@ func (t TriggerDefinition) GetUniqueID() UniqueID {
 
 func (t TriggerDefinition) FQN() string {
 	return t.Name
+}
+
+func (t TriggerDefinition) GetCreateStatement() string {
+	return fmt.Sprintf("\n\n%s;", t.Def)
 }
 
 func GetTriggers(connectionPool *dbconn.DBConn) []TriggerDefinition {
@@ -280,6 +288,30 @@ func (et EventTrigger) GetUniqueID() UniqueID {
 
 func (et EventTrigger) FQN() string {
 	return et.Name
+}
+
+func (et EventTrigger) GetCreateStatements() string {
+	statement := fmt.Sprintf("\n\nCREATE EVENT TRIGGER %s\nON %s", et.Name, et.Event)
+	if et.EventTags != "" {
+		statement += fmt.Sprintf("\nWHEN TAG IN (%s)", et.EventTags)
+	}
+	statement += fmt.Sprintf("\nEXECUTE PROCEDURE %s();", et.FunctionName)
+
+	if et.Enabled != "O" {
+		var enableOption string
+		switch et.Enabled {
+		case "D":
+			enableOption = "DISABLE"
+		case "A":
+			enableOption = "ENABLE ALWAYS"
+		case "R":
+			enableOption = "ENABLE REPLICA"
+		default:
+			enableOption = "ENABLE"
+		}
+		statement += fmt.Sprintf("\nALTER EVENT TRIGGER %s %s;", et.Name, enableOption)
+	}
+	return statement
 }
 
 func GetEventTriggers(connectionPool *dbconn.DBConn) []EventTrigger {

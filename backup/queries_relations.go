@@ -8,6 +8,7 @@ package backup
 import (
 	"context"
 	"fmt"
+	"math"
 	"strings"
 
 	"github.com/greenplum-db/gp-common-go-libs/dbconn"
@@ -176,6 +177,39 @@ type SequenceDefinition struct {
 	LogCnt      int64
 	IsCycled    bool
 	IsCalled    bool
+}
+
+func (s Sequence) GetCreateStatement() string {
+	maxVal := int64(math.MaxInt64)
+	minVal := int64(math.MinInt64)
+	seqDef := s.Definition
+	statement := fmt.Sprintln("\n\nCREATE SEQUENCE", s.FQN())
+	if connectionPool.Version.AtLeast("6") {
+		statement += fmt.Sprintln("\tSTART WITH", seqDef.StartVal)
+	} else if !seqDef.IsCalled {
+		statement += fmt.Sprintln("\tSTART WITH", seqDef.LastVal)
+	}
+	statement += fmt.Sprintln("\tINCREMENT BY", seqDef.Increment)
+
+	if !((seqDef.MaxVal == maxVal && seqDef.Increment > 0) || (seqDef.MaxVal == -1 && seqDef.Increment < 0)) {
+		statement += fmt.Sprintln("\tMAXVALUE", seqDef.MaxVal)
+	} else {
+		statement += fmt.Sprintln("\tNO MAXVALUE")
+	}
+	if !((seqDef.MinVal == minVal && seqDef.Increment < 0) || (seqDef.MinVal == 1 && seqDef.Increment > 0)) {
+		statement += fmt.Sprintln("\tMINVALUE", seqDef.MinVal)
+	} else {
+		statement += fmt.Sprintln("\tNO MINVALUE")
+	}
+	cycleStr := ""
+	if seqDef.IsCycled {
+		cycleStr = "\n\tCYCLE"
+	}
+	statement += fmt.Sprintf("\tCACHE %d%s;", seqDef.CacheVal, cycleStr)
+	statement += fmt.Sprintf("\n\nSELECT pg_catalog.setval('%s', %d, %v);\n",
+	    utils.EscapeSingleQuotes(s.FQN()), seqDef.LastVal, seqDef.IsCalled)
+
+    return statement
 }
 
 func GetAllSequences(connectionPool *dbconn.DBConn) []Sequence {

@@ -7,7 +7,6 @@ package backup
 
 import (
 	"fmt"
-	"math"
 	"strings"
 
 	"github.com/greenplum-db/gp-common-go-libs/gplog"
@@ -238,38 +237,9 @@ func PrintPostCreateTableStatements(metadataFile *utils.FileWithByteCount, toc *
  * minVal and maxVal come from SEQ_MINVALUE and SEQ_MAXVALUE, defined in include/commands/sequence.h.
  */
 func PrintCreateSequenceStatements(metadataFile *utils.FileWithByteCount, toc *toc.TOC, sequences []Sequence, sequenceMetadata MetadataMap) {
-	maxVal := int64(math.MaxInt64)
-	minVal := int64(math.MinInt64)
 	for _, sequence := range sequences {
 		start := metadataFile.ByteCount
-		seqDef := sequence.Definition
-		metadataFile.MustPrintln("\n\nCREATE SEQUENCE", sequence.FQN())
-		if connectionPool.Version.AtLeast("6") {
-			metadataFile.MustPrintln("\tSTART WITH", seqDef.StartVal)
-		} else if !seqDef.IsCalled {
-			metadataFile.MustPrintln("\tSTART WITH", seqDef.LastVal)
-		}
-		metadataFile.MustPrintln("\tINCREMENT BY", seqDef.Increment)
-
-		if !((seqDef.MaxVal == maxVal && seqDef.Increment > 0) || (seqDef.MaxVal == -1 && seqDef.Increment < 0)) {
-			metadataFile.MustPrintln("\tMAXVALUE", seqDef.MaxVal)
-		} else {
-			metadataFile.MustPrintln("\tNO MAXVALUE")
-		}
-		if !((seqDef.MinVal == minVal && seqDef.Increment < 0) || (seqDef.MinVal == 1 && seqDef.Increment > 0)) {
-			metadataFile.MustPrintln("\tMINVALUE", seqDef.MinVal)
-		} else {
-			metadataFile.MustPrintln("\tNO MINVALUE")
-		}
-		cycleStr := ""
-		if seqDef.IsCycled {
-			cycleStr = "\n\tCYCLE"
-		}
-		metadataFile.MustPrintf("\tCACHE %d%s;", seqDef.CacheVal, cycleStr)
-
-		metadataFile.MustPrintf("\n\nSELECT pg_catalog.setval('%s', %d, %v);\n",
-			utils.EscapeSingleQuotes(sequence.FQN()), seqDef.LastVal, seqDef.IsCalled)
-
+		metadataFile.MustPrintf(sequence.GetCreateStatement())
 		section, entry := sequence.GetMetadataEntry()
 		toc.AddMetadataEntry(section, entry, start, metadataFile.ByteCount)
 		PrintObjectMetadata(metadataFile, toc, sequenceMetadata[sequence.Relation.GetUniqueID()], sequence, "")

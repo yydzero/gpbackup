@@ -12,10 +12,11 @@ import (
 )
 
 /*
- * There's no built-in function to generate constraint definitions like there is for other types of
- * metadata, so this function constructs them.
+ * There's no built-in function to generate constraint definitions like there is for
+ * other types of metadata, so this function constructs them.
  */
-func PrintConstraintStatements(metadataFile *utils.FileWithByteCount, toc *toc.TOC, constraints []Constraint, conMetadata MetadataMap) {
+func PrintConstraintStatements(metadataFile *utils.FileWithByteCount, toc *toc.TOC,
+	constraints []Constraint, conMetadata MetadataMap) {
 	allConstraints := make([]Constraint, 0)
 	allFkConstraints := make([]Constraint, 0)
 	/*
@@ -32,18 +33,12 @@ func PrintConstraintStatements(metadataFile *utils.FileWithByteCount, toc *toc.T
 	}
 	constraints = append(allConstraints, allFkConstraints...)
 
-	alterStr := "\n\nALTER %s %s ADD CONSTRAINT %s %s;\n"
 	for _, constraint := range constraints {
 		start := metadataFile.ByteCount
 		if constraint.IsDomainConstraint {
 			continue
 		}
-		// ConIsLocal should always return true from GetConstraints because we filter out constraints that are inherited using the INHERITS clause, or inherited from a parent partition table. This field only accurately reflects constraints in GPDB6+ because check constraints on parent tables must propogate to children. For GPDB versions 5 or lower, this field will default to false.
-		objStr := "TABLE ONLY"
-		if constraint.IsPartitionParent || (constraint.ConType == "c" && constraint.ConIsLocal) {
-			objStr = "TABLE"
-		}
-		metadataFile.MustPrintf(alterStr, objStr, constraint.OwningObject, constraint.Name, constraint.ConDef)
+		metadataFile.MustPrintf(constraint.GetCreateStatements())
 
 		section, entry := constraint.GetMetadataEntry()
 		toc.AddMetadataEntry(section, entry, start, metadataFile.ByteCount)
@@ -51,13 +46,12 @@ func PrintConstraintStatements(metadataFile *utils.FileWithByteCount, toc *toc.T
 	}
 }
 
-func PrintCreateSchemaStatements(metadataFile *utils.FileWithByteCount, toc *toc.TOC, schemas []Schema, schemaMetadata MetadataMap) {
+func PrintCreateSchemaStatements(metadataFile *utils.FileWithByteCount, toc *toc.TOC,
+	schemas []Schema, schemaMetadata MetadataMap) {
 	for _, schema := range schemas {
 		start := metadataFile.ByteCount
-		metadataFile.MustPrintln()
-		if schema.Name != "public" {
-			metadataFile.MustPrintf("\nCREATE SCHEMA %s;", schema.Name)
-		}
+		metadataFile.MustPrintf(schema.GetCreateStatement())
+
 		section, entry := schema.GetMetadataEntry()
 		toc.AddMetadataEntry(section, entry, start, metadataFile.ByteCount)
 		PrintObjectMetadata(metadataFile, toc, schemaMetadata[schema.GetUniqueID()], schema, "")

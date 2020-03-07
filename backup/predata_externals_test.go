@@ -24,40 +24,40 @@ var _ = Describe("backup/predata_externals tests", func() {
 		Context("Type classification", func() {
 			It("classifies a READABLE EXTERNAL table correctly", func() {
 				extTableDef.Location = "file://host:port/path/file"
-				typ, proto := backup.DetermineExternalTableCharacteristics(extTableDef)
+				typ, proto := extTableDef.GetTableCharacteristics()
 				Expect(typ).To(Equal(backup.READABLE))
 				Expect(proto).To(Equal(backup.FILE))
 			})
 			It("classifies a WRITABLE EXTERNAL table correctly", func() {
 				extTableDef.Location = "file://host:port/path/file"
 				extTableDef.Writable = true
-				typ, proto := backup.DetermineExternalTableCharacteristics(extTableDef)
+				typ, proto := extTableDef.GetTableCharacteristics()
 				Expect(typ).To(Equal(backup.WRITABLE))
 				Expect(proto).To(Equal(backup.FILE))
 			})
 			It("classifies a READABLE EXTERNAL WEB table with a LOCATION correctly", func() {
 				extTableDef.Location = "http://webhost:port/path/file"
-				typ, proto := backup.DetermineExternalTableCharacteristics(extTableDef)
+				typ, proto := extTableDef.GetTableCharacteristics()
 				Expect(typ).To(Equal(backup.READABLE_WEB))
 				Expect(proto).To(Equal(backup.HTTP))
 			})
 			It("classifies a WRITABLE EXTERNAL WEB table with a LOCATION correctly", func() {
 				extTableDef.Location = "http://webhost:port/path/file"
 				extTableDef.Writable = true
-				typ, proto := backup.DetermineExternalTableCharacteristics(extTableDef)
+				typ, proto := extTableDef.GetTableCharacteristics()
 				Expect(typ).To(Equal(backup.WRITABLE_WEB))
 				Expect(proto).To(Equal(backup.HTTP))
 			})
 			It("classifies a READABLE EXTERNAL WEB table with an EXECUTE correctly", func() {
 				extTableDef.Command = "hostname"
-				typ, proto := backup.DetermineExternalTableCharacteristics(extTableDef)
+				typ, proto := extTableDef.GetTableCharacteristics()
 				Expect(typ).To(Equal(backup.READABLE_WEB))
 				Expect(proto).To(Equal(backup.HTTP))
 			})
 			It("classifies a WRITABLE EXTERNAL WEB table correctly", func() {
 				extTableDef.Command = "hostname"
 				extTableDef.Writable = true
-				typ, proto := backup.DetermineExternalTableCharacteristics(extTableDef)
+				typ, proto := extTableDef.GetTableCharacteristics()
 				Expect(typ).To(Equal(backup.WRITABLE_WEB))
 				Expect(proto).To(Equal(backup.HTTP))
 			})
@@ -65,7 +65,7 @@ var _ = Describe("backup/predata_externals tests", func() {
 		DescribeTable("Protocol classification", func(location string, expectedType int, expectedProto int) {
 			extTableDef := extTableEmpty
 			extTableDef.Location = location
-			typ, proto := backup.DetermineExternalTableCharacteristics(extTableDef)
+			typ, proto := extTableDef.GetTableCharacteristics()
 			Expect(typ).To(Equal(expectedType))
 			Expect(proto).To(Equal(expectedProto))
 		},
@@ -94,7 +94,8 @@ var _ = Describe("backup/predata_externals tests", func() {
 			testTable.ExtTableDef = extTableDef
 			backup.PrintExternalTableCreateStatement(backupfile, tocfile, testTable)
 			testutils.ExpectEntry(tocfile.PredataEntries, 0, "public", "", "tablename", "TABLE")
-			testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `CREATE READABLE EXTERNAL TABLE public.tablename (
+			testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+				`CREATE READABLE EXTERNAL TABLE public.tablename (
 ) LOCATION (
 	'file://host:port/path/file'
 )
@@ -107,7 +108,8 @@ ENCODING 'UTF-8';`)
 			extTableDef.Writable = true
 			testTable.ExtTableDef = extTableDef
 			backup.PrintExternalTableCreateStatement(backupfile, tocfile, testTable)
-			testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `CREATE WRITABLE EXTERNAL TABLE public.tablename (
+			testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+				`CREATE WRITABLE EXTERNAL TABLE public.tablename (
 ) LOCATION (
 	'file://host:port/path/file'
 )
@@ -120,7 +122,8 @@ DISTRIBUTED RANDOMLY;`)
 			extTableDef.URIs = []string{"http://webhost:port/path/file"}
 			testTable.ExtTableDef = extTableDef
 			backup.PrintExternalTableCreateStatement(backupfile, tocfile, testTable)
-			testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `CREATE READABLE EXTERNAL WEB TABLE public.tablename (
+			testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+				`CREATE READABLE EXTERNAL WEB TABLE public.tablename (
 ) LOCATION (
 	'http://webhost:port/path/file'
 )
@@ -131,7 +134,8 @@ ENCODING 'UTF-8';`)
 			extTableDef.Command = "hostname"
 			testTable.ExtTableDef = extTableDef
 			backup.PrintExternalTableCreateStatement(backupfile, tocfile, testTable)
-			testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `CREATE READABLE EXTERNAL WEB TABLE public.tablename (
+			testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+				`CREATE READABLE EXTERNAL WEB TABLE public.tablename (
 ) EXECUTE 'hostname'
 FORMAT 'TEXT'
 ENCODING 'UTF-8';`)
@@ -141,7 +145,8 @@ ENCODING 'UTF-8';`)
 			extTableDef.Writable = true
 			testTable.ExtTableDef = extTableDef
 			backup.PrintExternalTableCreateStatement(backupfile, tocfile, testTable)
-			testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `CREATE WRITABLE EXTERNAL WEB TABLE public.tablename (
+			testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+				`CREATE WRITABLE EXTERNAL WEB TABLE public.tablename (
 ) EXECUTE 'hostname'
 FORMAT 'TEXT'
 ENCODING 'UTF-8'
@@ -317,7 +322,7 @@ ENCODING 'UTF-8'`)
 			It("generates a FORMAT statement with no options provided", func() {
 				extTableDef.FormatType = "t"
 
-				resultStatement := backup.GenerateFormatStatement(extTableDef)
+				resultStatement := extTableDef.GenerateFormatStatement()
 
 				Expect(resultStatement).To(Equal(`FORMAT 'TEXT'`))
 			})
@@ -325,7 +330,7 @@ ENCODING 'UTF-8'`)
 				extTableDef.FormatType = "t"
 				extTableDef.FormatOpts = `delimiter '\t' null '\N' escape '\'`
 
-				resultStatement := backup.GenerateFormatStatement(extTableDef)
+				resultStatement := extTableDef.GenerateFormatStatement()
 
 				Expect(resultStatement).To(Equal(`FORMAT 'TEXT' (delimiter E'\\t' null E'\\N' escape E'\\')`))
 			})
@@ -333,7 +338,7 @@ ENCODING 'UTF-8'`)
 				extTableDef.FormatType = "t"
 				extTableDef.FormatOpts = `delimiter '\t' null '\N' escape '\' fill missing fields`
 
-				resultStatement := backup.GenerateFormatStatement(extTableDef)
+				resultStatement := extTableDef.GenerateFormatStatement()
 
 				Expect(resultStatement).To(Equal(`FORMAT 'TEXT' (delimiter E'\\t' null E'\\N' escape E'\\' fill missing fields)`))
 			})
@@ -342,7 +347,7 @@ ENCODING 'UTF-8'`)
 				extTableDef.FormatOpts = `delimiter ' ' null '
 ' escape '	'`
 
-				resultStatement := backup.GenerateFormatStatement(extTableDef)
+				resultStatement := extTableDef.GenerateFormatStatement()
 
 				Expect(resultStatement).To(Equal(`FORMAT 'TEXT' (delimiter E' ' null E'
 ' escape E'	')`))
@@ -351,7 +356,7 @@ ENCODING 'UTF-8'`)
 				extTableDef.FormatType = "t"
 				extTableDef.FormatOpts = `delimiter '%' null '' escape 'OFF'`
 
-				resultStatement := backup.GenerateFormatStatement(extTableDef)
+				resultStatement := extTableDef.GenerateFormatStatement()
 
 				Expect(resultStatement).To(Equal(`FORMAT 'TEXT' (delimiter E'%' null E'' escape E'OFF')`))
 			})
@@ -360,7 +365,7 @@ ENCODING 'UTF-8'`)
 			It("generates a FORMAT statement with no options provided", func() {
 				extTableDef.FormatType = "c"
 
-				resultStatement := backup.GenerateFormatStatement(extTableDef)
+				resultStatement := extTableDef.GenerateFormatStatement()
 
 				Expect(resultStatement).To(Equal(`FORMAT 'CSV'`))
 			})
@@ -368,7 +373,7 @@ ENCODING 'UTF-8'`)
 				extTableDef.FormatType = "c"
 				extTableDef.FormatOpts = `delimiter ',' null '' escape '"' quote '''`
 
-				resultStatement := backup.GenerateFormatStatement(extTableDef)
+				resultStatement := extTableDef.GenerateFormatStatement()
 
 				Expect(resultStatement).To(Equal(`FORMAT 'CSV' (delimiter E',' null E'' escape E'"' quote E'\'')`))
 			})
@@ -376,7 +381,7 @@ ENCODING 'UTF-8'`)
 				extTableDef.FormatType = "c"
 				extTableDef.FormatOpts = `delimiter ',' null '' quote ''' force quote column_name`
 
-				resultStatement := backup.GenerateFormatStatement(extTableDef)
+				resultStatement := extTableDef.GenerateFormatStatement()
 
 				Expect(resultStatement).To(Equal(`FORMAT 'CSV' (delimiter E',' null E'' quote E'\'' force quote column_name)`))
 			})
@@ -386,7 +391,7 @@ ENCODING 'UTF-8'`)
 				extTableDef.FormatType = "b"
 				extTableDef.FormatOpts = `formatter 'gphdfs_import' other_opt 'foo'`
 
-				resultStatement := backup.GenerateFormatStatement(extTableDef)
+				resultStatement := extTableDef.GenerateFormatStatement()
 
 				Expect(resultStatement).To(Equal(`FORMAT 'CUSTOM' (formatter = E'gphdfs_import', other_opt = E'foo')`))
 			})
@@ -395,7 +400,7 @@ ENCODING 'UTF-8'`)
 				extTableDef.FormatOpts = `formatter 'gphdfs_import' opt1 '	' opt2 '
 '`
 
-				resultStatement := backup.GenerateFormatStatement(extTableDef)
+				resultStatement := extTableDef.GenerateFormatStatement()
 
 				Expect(resultStatement).To(Equal(`FORMAT 'CUSTOM' (formatter = E'gphdfs_import', opt1 = E'	', opt2 = E'
 ')`))
@@ -405,7 +410,7 @@ ENCODING 'UTF-8'`)
 			It("generates a FORMAT statement with no options provided", func() {
 				extTableDef.FormatType = "a"
 
-				resultStatement := backup.GenerateFormatStatement(extTableDef)
+				resultStatement := extTableDef.GenerateFormatStatement()
 
 				Expect(resultStatement).To(Equal("FORMAT 'AVRO'"))
 			})
@@ -413,7 +418,7 @@ ENCODING 'UTF-8'`)
 				extTableDef.FormatType = "a"
 				extTableDef.FormatOpts = `option1 'val1' option2 'val2'`
 
-				resultStatement := backup.GenerateFormatStatement(extTableDef)
+				resultStatement := extTableDef.GenerateFormatStatement()
 
 				Expect(resultStatement).To(Equal("FORMAT 'AVRO' (option1 = E'val1', option2 = E'val2')"))
 			})
@@ -422,7 +427,7 @@ ENCODING 'UTF-8'`)
 			It("generates a FORMAT statement with no options provided", func() {
 				extTableDef.FormatType = "p"
 
-				resultStatement := backup.GenerateFormatStatement(extTableDef)
+				resultStatement := extTableDef.GenerateFormatStatement()
 
 				Expect(resultStatement).To(Equal("FORMAT 'PARQUET'"))
 			})
@@ -430,7 +435,7 @@ ENCODING 'UTF-8'`)
 				extTableDef.FormatType = "p"
 				extTableDef.FormatOpts = `option1 'val1' option2 'val2'`
 
-				resultStatement := backup.GenerateFormatStatement(extTableDef)
+				resultStatement := extTableDef.GenerateFormatStatement()
 
 				Expect(resultStatement).To(Equal("FORMAT 'PARQUET' (option1 = E'val1', option2 = E'val2')"))
 			})
@@ -451,19 +456,23 @@ ENCODING 'UTF-8'`)
 		It("prints untrusted protocol with read and write function", func() {
 			backup.PrintCreateExternalProtocolStatement(backupfile, tocfile, protocolUntrustedReadWrite, funcInfoMap, emptyMetadata)
 			testutils.ExpectEntry(tocfile.PredataEntries, 0, "", "", "s3", "PROTOCOL")
-			testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `CREATE PROTOCOL s3 (readfunc = public.read_fn_s3, writefunc = public.write_fn_s3);`)
+			testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+				`CREATE PROTOCOL s3 (readfunc = public.read_fn_s3, writefunc = public.write_fn_s3);`)
 		})
 		It("prints untrusted protocol with read and validator", func() {
 			backup.PrintCreateExternalProtocolStatement(backupfile, tocfile, protocolUntrustedReadValidator, funcInfoMap, emptyMetadata)
-			testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `CREATE PROTOCOL s3 (readfunc = public.read_fn_s3, validatorfunc = public.validator);`)
+			testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+				`CREATE PROTOCOL s3 (readfunc = public.read_fn_s3, validatorfunc = public.validator);`)
 		})
 		It("prints untrusted protocol with write function only", func() {
 			backup.PrintCreateExternalProtocolStatement(backupfile, tocfile, protocolUntrustedWriteOnly, funcInfoMap, emptyMetadata)
-			testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `CREATE PROTOCOL s3 (writefunc = public.write_fn_s3);`)
+			testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+				`CREATE PROTOCOL s3 (writefunc = public.write_fn_s3);`)
 		})
 		It("prints trusted protocol with read, write, and validator", func() {
 			backup.PrintCreateExternalProtocolStatement(backupfile, tocfile, protocolTrustedReadWriteValidator, funcInfoMap, emptyMetadata)
-			testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `CREATE TRUSTED PROTOCOL s3 (readfunc = public.read_fn_s3, writefunc = public.write_fn_s3, validatorfunc = public.validator);`)
+			testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+				`CREATE TRUSTED PROTOCOL s3 (readfunc = public.read_fn_s3, writefunc = public.write_fn_s3, validatorfunc = public.validator);`)
 		})
 		It("prints a protocol with privileges and an owner", func() {
 			protoMetadata := backup.ObjectMetadata{Privileges: []backup.ACL{{Grantee: "testrole", Select: true, Insert: true}}, Owner: "testrole"}
@@ -498,7 +507,8 @@ GRANT ALL ON PROTOCOL s3 TO testrole;`}
 			}
 			externalPartitions := []backup.PartitionInfo{externalPartition}
 			backup.PrintExchangeExternalPartitionStatements(backupfile, tocfile, externalPartitions, emptyPartInfoMap, tables)
-			testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `ALTER TABLE public.partition_table EXCHANGE PARTITION partition_name WITH TABLE public.partition_table_ext_part_ WITHOUT VALIDATION;
+			testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+				`ALTER TABLE public.partition_table EXCHANGE PARTITION partition_name WITH TABLE public.partition_table_ext_part_ WITHOUT VALIDATION;
 
 DROP TABLE public.partition_table_ext_part_;`)
 		})
@@ -516,7 +526,8 @@ DROP TABLE public.partition_table_ext_part_;`)
 			}
 			externalPartitions := []backup.PartitionInfo{externalPartition}
 			backup.PrintExchangeExternalPartitionStatements(backupfile, tocfile, externalPartitions, emptyPartInfoMap, tables)
-			testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `ALTER TABLE public.partition_table EXCHANGE PARTITION FOR (RANK(1)) WITH TABLE public.partition_table_ext_part_ WITHOUT VALIDATION;
+			testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+				`ALTER TABLE public.partition_table EXCHANGE PARTITION FOR (RANK(1)) WITH TABLE public.partition_table_ext_part_ WITHOUT VALIDATION;
 
 DROP TABLE public.partition_table_ext_part_;`)
 		})
@@ -546,7 +557,8 @@ DROP TABLE public.partition_table_ext_part_;`)
 			partInfoMap := map[uint32]backup.PartitionInfo{externalPartitionParent.PartitionRuleOid: externalPartitionParent}
 			externalPartitions := []backup.PartitionInfo{externalPartition}
 			backup.PrintExchangeExternalPartitionStatements(backupfile, tocfile, externalPartitions, partInfoMap, tables)
-			testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `ALTER TABLE public.partition_table ALTER PARTITION FOR (RANK(3)) EXCHANGE PARTITION FOR (RANK(1)) WITH TABLE public.partition_table_ext_part_ WITHOUT VALIDATION;
+			testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+				`ALTER TABLE public.partition_table ALTER PARTITION FOR (RANK(3)) EXCHANGE PARTITION FOR (RANK(1)) WITH TABLE public.partition_table_ext_part_ WITHOUT VALIDATION;
 
 DROP TABLE public.partition_table_ext_part_;`)
 		})
@@ -576,7 +588,8 @@ DROP TABLE public.partition_table_ext_part_;`)
 			partInfoMap := map[uint32]backup.PartitionInfo{externalPartitionParent.PartitionRuleOid: externalPartitionParent}
 			externalPartitions := []backup.PartitionInfo{externalPartition}
 			backup.PrintExchangeExternalPartitionStatements(backupfile, tocfile, externalPartitions, partInfoMap, tables)
-			testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `ALTER TABLE public.partition_table ALTER PARTITION partition_name EXCHANGE PARTITION FOR (RANK(1)) WITH TABLE public.partition_table_ext_part_ WITHOUT VALIDATION;
+			testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+				`ALTER TABLE public.partition_table ALTER PARTITION partition_name EXCHANGE PARTITION FOR (RANK(1)) WITH TABLE public.partition_table_ext_part_ WITHOUT VALIDATION;
 
 DROP TABLE public.partition_table_ext_part_;`)
 		})
@@ -617,7 +630,8 @@ DROP TABLE public.partition_table_ext_part_;`)
 			partInfoMap := map[uint32]backup.PartitionInfo{externalPartitionParent1.PartitionRuleOid: externalPartitionParent1, externalPartitionParent2.PartitionRuleOid: externalPartitionParent2}
 			externalPartitions := []backup.PartitionInfo{externalPartition}
 			backup.PrintExchangeExternalPartitionStatements(backupfile, tocfile, externalPartitions, partInfoMap, tables)
-			testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `ALTER TABLE public.partition_table ALTER PARTITION FOR (RANK(3)) ALTER PARTITION partition_name EXCHANGE PARTITION FOR (RANK(1)) WITH TABLE public.partition_table_ext_part_ WITHOUT VALIDATION;
+			testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+				`ALTER TABLE public.partition_table ALTER PARTITION FOR (RANK(3)) ALTER PARTITION partition_name EXCHANGE PARTITION FOR (RANK(1)) WITH TABLE public.partition_table_ext_part_ WITHOUT VALIDATION;
 
 DROP TABLE public.partition_table_ext_part_;`)
 		})

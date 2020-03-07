@@ -54,7 +54,7 @@ var _ = Describe("backup integration create statement tests", func() {
 			oid := testutils.OidFromObjectName(connectionPool, "public", "testtable", backup.TYPE_RELATION)
 			resultTableDefs := backup.GetExternalTableDefinitions(connectionPool)
 			resultTableDef := resultTableDefs[oid]
-			resultTableDef.Type, resultTableDef.Protocol = backup.DetermineExternalTableCharacteristics(resultTableDef)
+			resultTableDef.Type, resultTableDef.Protocol = resultTableDef.GetTableCharacteristics()
 
 			structmatcher.ExpectStructsToMatchExcluding(&extTable, &resultTableDef, "Oid")
 		})
@@ -74,7 +74,7 @@ var _ = Describe("backup integration create statement tests", func() {
 			oid := testutils.OidFromObjectName(connectionPool, "public", "testtable", backup.TYPE_RELATION)
 			resultTableDefs := backup.GetExternalTableDefinitions(connectionPool)
 			resultTableDef := resultTableDefs[oid]
-			resultTableDef.Type, resultTableDef.Protocol = backup.DetermineExternalTableCharacteristics(resultTableDef)
+			resultTableDef.Type, resultTableDef.Protocol = resultTableDef.GetTableCharacteristics()
 
 			structmatcher.ExpectStructsToMatchExcluding(&extTable, &resultTableDef, "Oid")
 		})
@@ -92,7 +92,7 @@ var _ = Describe("backup integration create statement tests", func() {
 			oid := testutils.OidFromObjectName(connectionPool, "public", "testtable", backup.TYPE_RELATION)
 			resultTableDefs := backup.GetExternalTableDefinitions(connectionPool)
 			resultTableDef := resultTableDefs[oid]
-			resultTableDef.Type, resultTableDef.Protocol = backup.DetermineExternalTableCharacteristics(resultTableDef)
+			resultTableDef.Type, resultTableDef.Protocol = resultTableDef.GetTableCharacteristics()
 
 			structmatcher.ExpectStructsToMatchExcluding(&extTable, &resultTableDef, "Oid")
 		})
@@ -110,7 +110,7 @@ var _ = Describe("backup integration create statement tests", func() {
 			oid := testutils.OidFromObjectName(connectionPool, "public", "testtable", backup.TYPE_RELATION)
 			resultTableDefs := backup.GetExternalTableDefinitions(connectionPool)
 			resultTableDef := resultTableDefs[oid]
-			resultTableDef.Type, resultTableDef.Protocol = backup.DetermineExternalTableCharacteristics(resultTableDef)
+			resultTableDef.Type, resultTableDef.Protocol = resultTableDef.GetTableCharacteristics()
 
 			structmatcher.ExpectStructsToMatchExcluding(&extTable, &resultTableDef, "Oid")
 		})
@@ -131,7 +131,7 @@ var _ = Describe("backup integration create statement tests", func() {
 			oid := testutils.OidFromObjectName(connectionPool, "public", "testtable", backup.TYPE_RELATION)
 			resultTableDefs := backup.GetExternalTableDefinitions(connectionPool)
 			resultTableDef := resultTableDefs[oid]
-			resultTableDef.Type, resultTableDef.Protocol = backup.DetermineExternalTableCharacteristics(resultTableDef)
+			resultTableDef.Type, resultTableDef.Protocol = resultTableDef.GetTableCharacteristics()
 
 			structmatcher.ExpectStructsToMatchExcluding(&extTable, &resultTableDef, "Oid")
 		})
@@ -149,7 +149,7 @@ var _ = Describe("backup integration create statement tests", func() {
 			oid := testutils.OidFromObjectName(connectionPool, "public", "testtable", backup.TYPE_RELATION)
 			resultTableDefs := backup.GetExternalTableDefinitions(connectionPool)
 			resultTableDef := resultTableDefs[oid]
-			resultTableDef.Type, resultTableDef.Protocol = backup.DetermineExternalTableCharacteristics(resultTableDef)
+			resultTableDef.Type, resultTableDef.Protocol = resultTableDef.GetTableCharacteristics()
 
 			structmatcher.ExpectStructsToMatchExcluding(&extTable, &resultTableDef, "Oid")
 		})
@@ -168,7 +168,7 @@ var _ = Describe("backup integration create statement tests", func() {
 			oid := testutils.OidFromObjectName(connectionPool, "public", "testtable", backup.TYPE_RELATION)
 			resultTableDefs := backup.GetExternalTableDefinitions(connectionPool)
 			resultTableDef := resultTableDefs[oid]
-			resultTableDef.Type, resultTableDef.Protocol = backup.DetermineExternalTableCharacteristics(resultTableDef)
+			resultTableDef.Type, resultTableDef.Protocol = resultTableDef.GetTableCharacteristics()
 
 			structmatcher.ExpectStructsToMatchExcluding(&extTable, &resultTableDef, "Oid")
 		})
