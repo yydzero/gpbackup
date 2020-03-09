@@ -13,127 +13,232 @@ import (
 var _ = Describe("backup integration tests", func() {
 	Describe("GetExternalTableDefinitions", func() {
 		It("returns a slice for a basic external table definition", func() {
-			testhelper.AssertQueryRuns(connectionPool, "CREATE TABLE public.simple_table(i int)")
-			defer testhelper.AssertQueryRuns(connectionPool, "DROP TABLE public.simple_table")
-			testhelper.AssertQueryRuns(connectionPool, `CREATE READABLE EXTERNAL TABLE public.ext_table(i int)
+			testhelper.AssertQueryRuns(connectionPool,
+				"CREATE TABLE public.simple_table(i int)")
+			defer testhelper.AssertQueryRuns(connectionPool,
+				"DROP TABLE public.simple_table")
+			testhelper.AssertQueryRuns(connectionPool,
+				`CREATE READABLE EXTERNAL TABLE public.ext_table(i int)
 LOCATION ('file://tmp/myfile.txt')
 FORMAT 'TEXT'`)
-			defer testhelper.AssertQueryRuns(connectionPool, "DROP EXTERNAL TABLE public.ext_table")
-			oid := testutils.OidFromObjectName(connectionPool, "public", "ext_table", backup.TYPE_RELATION)
+			defer testhelper.AssertQueryRuns(connectionPool,
+				"DROP EXTERNAL TABLE public.ext_table")
+			oid := testutils.OidFromObjectName(connectionPool,
+				"public", "ext_table", backup.TYPE_RELATION)
 
 			results := backup.GetExternalTableDefinitions(connectionPool)
 			result := results[oid]
 
-			extTable := backup.ExternalTableDefinition{Oid: 0, Type: 0, Protocol: 0, Location: "file://tmp/myfile.txt",
-				ExecLocation: "ALL_SEGMENTS", FormatType: "t", FormatOpts: "delimiter '	' null '\\N' escape '\\'",
-				Options: "", Command: "", RejectLimit: 0, RejectLimitType: "", ErrTableName: "", ErrTableSchema: "", Encoding: "UTF8",
-				Writable: false, URIs: []string{"file://tmp/myfile.txt"}}
+			extTable := backup.ExternalTableDefinition{
+				Oid: 0,
+				Type: 0,
+				Protocol: 0,
+				Location: "file://tmp/myfile.txt",
+				ExecLocation: "ALL_SEGMENTS",
+				FormatType: "t",
+				FormatOpts: "delimiter '	' null '\\N' escape '\\'",
+				Options: "",
+				Command: "",
+				RejectLimit: 0,
+				RejectLimitType: "",
+				ErrTableName: "",
+				ErrTableSchema: "",
+				Encoding: "UTF8",
+				Writable: false,
+				URIs: []string{"file://tmp/myfile.txt",},
+			}
 			structmatcher.ExpectStructsToMatchExcluding(&extTable, &result, "Oid")
 		})
 		It("returns a slice for a basic external web table definition", func() {
-			testhelper.AssertQueryRuns(connectionPool, "CREATE TABLE public.simple_table(i int)")
-			defer testhelper.AssertQueryRuns(connectionPool, "DROP TABLE public.simple_table")
-			testhelper.AssertQueryRuns(connectionPool, `CREATE READABLE EXTERNAL WEB TABLE public.ext_table(i int)
+			testhelper.AssertQueryRuns(connectionPool,
+				"CREATE TABLE public.simple_table(i int)")
+			defer testhelper.AssertQueryRuns(connectionPool,
+				"DROP TABLE public.simple_table")
+			testhelper.AssertQueryRuns(connectionPool,
+				`CREATE READABLE EXTERNAL WEB TABLE public.ext_table(i int)
 EXECUTE 'hostname'
 FORMAT 'TEXT'`)
-			defer testhelper.AssertQueryRuns(connectionPool, "DROP EXTERNAL WEB TABLE public.ext_table")
-			oid := testutils.OidFromObjectName(connectionPool, "public", "ext_table", backup.TYPE_RELATION)
+			defer testhelper.AssertQueryRuns(connectionPool,
+				"DROP EXTERNAL WEB TABLE public.ext_table")
+			oid := testutils.OidFromObjectName(connectionPool,
+				"public", "ext_table", backup.TYPE_RELATION)
 
 			results := backup.GetExternalTableDefinitions(connectionPool)
 			result := results[oid]
 
-			extTable := backup.ExternalTableDefinition{Oid: 0, Type: 0, Protocol: 0, Location: "",
-				ExecLocation: "ALL_SEGMENTS", FormatType: "t", FormatOpts: "delimiter '	' null '\\N' escape '\\'",
-				Options: "", Command: "hostname", RejectLimit: 0, RejectLimitType: "", ErrTableName: "", ErrTableSchema: "", Encoding: "UTF8",
-				Writable: false, URIs: nil}
+			extTable := backup.ExternalTableDefinition{
+				Oid: 0,
+				Type: 0,
+				Protocol: 0,
+				Location: "",
+				ExecLocation: "ALL_SEGMENTS",
+				FormatType: "t",
+				FormatOpts: "delimiter '	' null '\\N' escape '\\'",
+				Options: "",
+				Command: "hostname",
+				RejectLimit: 0,
+				RejectLimitType: "",
+				ErrTableName: "",
+				ErrTableSchema: "",
+				Encoding: "UTF8",
+				Writable: false,
+				URIs: nil,
+			}
 
 			structmatcher.ExpectStructsToMatchExcluding(&extTable, &result, "Oid")
 		})
 		It("returns a slice for a complex external table definition", func() {
-			testhelper.AssertQueryRuns(connectionPool, `CREATE READABLE EXTERNAL TABLE public.ext_table(i int)
+			testhelper.AssertQueryRuns(connectionPool,
+				`CREATE READABLE EXTERNAL TABLE public.ext_table(i int)
 LOCATION ('file://tmp/myfile.txt')
 FORMAT 'TEXT'
 LOG ERRORS
 SEGMENT REJECT LIMIT 10 PERCENT
 `)
-			defer testhelper.AssertQueryRuns(connectionPool, "DROP EXTERNAL TABLE public.ext_table")
-			oid := testutils.OidFromObjectName(connectionPool, "public", "ext_table", backup.TYPE_RELATION)
+			defer testhelper.AssertQueryRuns(connectionPool,
+				"DROP EXTERNAL TABLE public.ext_table")
+			oid := testutils.OidFromObjectName(connectionPool,
+				"public", "ext_table", backup.TYPE_RELATION)
 
 			results := backup.GetExternalTableDefinitions(connectionPool)
 			result := results[oid]
 
-			extTable := backup.ExternalTableDefinition{Oid: 0, Type: 0, Protocol: 0, Location: "file://tmp/myfile.txt",
-				ExecLocation: "ALL_SEGMENTS", FormatType: "t", FormatOpts: "delimiter '	' null '\\N' escape '\\'",
-				Options: "", Command: "", RejectLimit: 10, RejectLimitType: "p", ErrTableName: "ext_table", ErrTableSchema: "public", Encoding: "UTF8",
-				Writable: false, URIs: []string{"file://tmp/myfile.txt"}}
+			extTable := backup.ExternalTableDefinition{
+				Oid: 0,
+				Type: 0,
+				Protocol: 0,
+				Location: "file://tmp/myfile.txt",
+				ExecLocation: "ALL_SEGMENTS",
+				FormatType: "t",
+				FormatOpts: "delimiter '	' null '\\N' escape '\\'",
+				Options: "",
+				Command: "",
+				RejectLimit: 10,
+				RejectLimitType: "p",
+				ErrTableName: "ext_table",
+				ErrTableSchema: "public",
+				Encoding: "UTF8",
+				Writable: false,
+				URIs: []string{"file://tmp/myfile.txt"}}
 
 			structmatcher.ExpectStructsToMatchExcluding(&extTable, &result, "Oid")
 		})
 		It("returns a slice for an external table using CSV format", func() {
-			testhelper.AssertQueryRuns(connectionPool, `CREATE READABLE EXTERNAL TABLE public.ext_table(i int)
+			testhelper.AssertQueryRuns(connectionPool,
+				`CREATE READABLE EXTERNAL TABLE public.ext_table(i int)
 LOCATION ('file://tmp/myfile.txt')
 FORMAT 'CSV' (delimiter E'|' null E'' escape E'\'' quote E'\'' force not null i)
 LOG ERRORS
 SEGMENT REJECT LIMIT 10 PERCENT
 `)
-			defer testhelper.AssertQueryRuns(connectionPool, "DROP EXTERNAL TABLE public.ext_table")
-			oid := testutils.OidFromObjectName(connectionPool, "public", "ext_table", backup.TYPE_RELATION)
+			defer testhelper.AssertQueryRuns(connectionPool,
+				"DROP EXTERNAL TABLE public.ext_table")
+			oid := testutils.OidFromObjectName(connectionPool,
+				"public", "ext_table", backup.TYPE_RELATION)
 
 			results := backup.GetExternalTableDefinitions(connectionPool)
 			result := results[oid]
 
-			extTable := backup.ExternalTableDefinition{Oid: 0, Type: 0, Protocol: 0, Location: "file://tmp/myfile.txt",
-				ExecLocation: "ALL_SEGMENTS", FormatType: "c", FormatOpts: `delimiter '|' null '' escape ''' quote ''' force not null i`,
-				Options: "", Command: "", RejectLimit: 10, RejectLimitType: "p", ErrTableName: "ext_table", ErrTableSchema: "public", Encoding: "UTF8",
-				Writable: false, URIs: []string{"file://tmp/myfile.txt"}}
+			extTable := backup.ExternalTableDefinition{
+				Oid: 0,
+				Type: 0,
+				Protocol: 0,
+				Location: "file://tmp/myfile.txt",
+				ExecLocation: "ALL_SEGMENTS",
+				FormatType: "c",
+				FormatOpts: `delimiter '|' null '' escape ''' quote ''' force not null i`,
+				Options: "",
+				Command: "",
+				RejectLimit: 10,
+				RejectLimitType: "p",
+				ErrTableName: "ext_table",
+				ErrTableSchema: "public",
+				Encoding: "UTF8",
+				Writable: false,
+				URIs: []string{"file://tmp/myfile.txt"},
+			}
 
 			structmatcher.ExpectStructsToMatchExcluding(&extTable, &result, "Oid")
 		})
 		It("returns a slice for an external table using CUSTOM format", func() {
-			testhelper.AssertQueryRuns(connectionPool, `CREATE READABLE EXTERNAL TABLE public.ext_table(i int)
+			testhelper.AssertQueryRuns(connectionPool,
+				`CREATE READABLE EXTERNAL TABLE public.ext_table(i int)
 LOCATION ('file://tmp/myfile.txt')
 FORMAT 'CUSTOM' (formatter = E'fixedwidth_out', i = E'20')
 LOG ERRORS
 SEGMENT REJECT LIMIT 10 PERCENT
 `)
-			defer testhelper.AssertQueryRuns(connectionPool, "DROP EXTERNAL TABLE public.ext_table")
-			oid := testutils.OidFromObjectName(connectionPool, "public", "ext_table", backup.TYPE_RELATION)
+			defer testhelper.AssertQueryRuns(connectionPool,
+				"DROP EXTERNAL TABLE public.ext_table")
+			oid := testutils.OidFromObjectName(connectionPool,
+				"public", "ext_table", backup.TYPE_RELATION)
 
 			results := backup.GetExternalTableDefinitions(connectionPool)
 			result := results[oid]
 
-			extTable := backup.ExternalTableDefinition{Oid: 0, Type: 0, Protocol: 0, Location: "file://tmp/myfile.txt",
-				ExecLocation: "ALL_SEGMENTS", FormatType: "b", FormatOpts: `formatter 'fixedwidth_out' i '20' `,
-				Options: "", Command: "", RejectLimit: 10, RejectLimitType: "p", ErrTableName: "ext_table", ErrTableSchema: "public", Encoding: "UTF8",
-				Writable: false, URIs: []string{"file://tmp/myfile.txt"}}
+			extTable := backup.ExternalTableDefinition{
+				Oid: 0,
+				Type: 0,
+				Protocol: 0,
+				Location: "file://tmp/myfile.txt",
+				ExecLocation: "ALL_SEGMENTS",
+				FormatType: "b",
+				FormatOpts: `formatter 'fixedwidth_out' i '20' `,
+				Options: "",
+				Command: "",
+				RejectLimit: 10,
+				RejectLimitType: "p",
+				ErrTableName: "ext_table",
+				ErrTableSchema: "public",
+				Encoding: "UTF8",
+				Writable: false,
+				URIs: []string{"file://tmp/myfile.txt"},
+			}
 
 			structmatcher.ExpectStructsToMatchExcluding(&extTable, &result, "Oid")
 		})
 		It("returns a slice for a complex external table definition with options", func() {
 			testutils.SkipIfBefore5(connectionPool)
-			testhelper.AssertQueryRuns(connectionPool, `CREATE READABLE EXTERNAL TABLE public.ext_table(i int)
+			testhelper.AssertQueryRuns(connectionPool,
+				`CREATE READABLE EXTERNAL TABLE public.ext_table(i int)
 LOCATION ('file://tmp/myfile.txt')
 FORMAT 'TEXT'
 OPTIONS (foo 'bar')
 LOG ERRORS
 SEGMENT REJECT LIMIT 10 PERCENT
 `)
-			defer testhelper.AssertQueryRuns(connectionPool, "DROP EXTERNAL TABLE public.ext_table")
-			oid := testutils.OidFromObjectName(connectionPool, "public", "ext_table", backup.TYPE_RELATION)
+			defer testhelper.AssertQueryRuns(connectionPool,
+				"DROP EXTERNAL TABLE public.ext_table")
+			oid := testutils.OidFromObjectName(connectionPool,
+				"public", "ext_table", backup.TYPE_RELATION)
 
 			results := backup.GetExternalTableDefinitions(connectionPool)
 			result := results[oid]
 
-			extTable := backup.ExternalTableDefinition{Oid: 0, Type: 0, Protocol: 0, Location: "file://tmp/myfile.txt",
-				ExecLocation: "ALL_SEGMENTS", FormatType: "t", FormatOpts: "delimiter '	' null '\\N' escape '\\'",
-				Options: "foo 'bar'", Command: "", RejectLimit: 10, RejectLimitType: "p", ErrTableName: "ext_table", ErrTableSchema: "public", Encoding: "UTF8",
-				Writable: false, URIs: []string{"file://tmp/myfile.txt"}}
+			extTable := backup.ExternalTableDefinition{
+				Oid: 0,
+				Type: 0,
+				Protocol: 0,
+				Location: "file://tmp/myfile.txt",
+				ExecLocation: "ALL_SEGMENTS",
+				FormatType: "t",
+				FormatOpts: "delimiter '	' null '\\N' escape '\\'",
+				Options: "foo 'bar'",
+				Command: "",
+				RejectLimit: 10,
+				RejectLimitType: "p",
+				ErrTableName: "ext_table",
+				ErrTableSchema: "public",
+				Encoding: "UTF8",
+				Writable: false,
+				URIs: []string{"file://tmp/myfile.txt"}}
 
 			structmatcher.ExpectStructsToMatchExcluding(&extTable, &result, "Oid")
 		})
 		It("returns a slice for a complex external table definition TEXT format delimiter", func() {
 			testutils.SkipIfBefore5(connectionPool)
-			testhelper.AssertQueryRuns(connectionPool, `CREATE EXTERNAL TABLE public.ext_table (
+			testhelper.AssertQueryRuns(connectionPool,
+				`CREATE EXTERNAL TABLE public.ext_table (
     i int
 ) LOCATION (
     'file://tmp/myfile.txt'
@@ -141,35 +246,65 @@ SEGMENT REJECT LIMIT 10 PERCENT
 FORMAT 'text' (delimiter E'%' null E'' escape E'OFF')
 ENCODING 'UTF8'
 LOG ERRORS SEGMENT REJECT LIMIT 10 PERCENT`)
-			defer testhelper.AssertQueryRuns(connectionPool, "DROP EXTERNAL TABLE public.ext_table")
-			oid := testutils.OidFromObjectName(connectionPool, "public", "ext_table", backup.TYPE_RELATION)
+			defer testhelper.AssertQueryRuns(connectionPool,
+				"DROP EXTERNAL TABLE public.ext_table")
+			oid := testutils.OidFromObjectName(connectionPool,
+				"public", "ext_table", backup.TYPE_RELATION)
 
 			results := backup.GetExternalTableDefinitions(connectionPool)
 			result := results[oid]
 
-			extTable := backup.ExternalTableDefinition{Oid: 0, Type: 0, Protocol: 0, Location: "file://tmp/myfile.txt",
-				ExecLocation: "ALL_SEGMENTS", FormatType: "t", FormatOpts: "delimiter '%' null '' escape 'OFF'",
-				Command: "", RejectLimit: 10, RejectLimitType: "p", ErrTableName: "ext_table", ErrTableSchema: "public", Encoding: "UTF8",
-				Writable: false, URIs: []string{"file://tmp/myfile.txt"}}
+			extTable := backup.ExternalTableDefinition{
+				Oid: 0,
+				Type: 0,
+				Protocol: 0,
+				Location: "file://tmp/myfile.txt",
+				ExecLocation: "ALL_SEGMENTS",
+				FormatType: "t",
+				FormatOpts: "delimiter '%' null '' escape 'OFF'",
+				Command: "",
+				RejectLimit: 10,
+				RejectLimitType: "p",
+				ErrTableName: "ext_table",
+				ErrTableSchema: "public",
+				Encoding: "UTF8",
+				Writable: false,
+				URIs: []string{"file://tmp/myfile.txt"},
+			}
 
 			structmatcher.ExpectStructsToMatchExcluding(&extTable, &result, "Oid")
 		})
 	})
 	Describe("GetExternalProtocols", func() {
 		It("returns a slice for a protocol", func() {
-			testhelper.AssertQueryRuns(connectionPool, "CREATE OR REPLACE FUNCTION public.write_to_s3() RETURNS integer AS '$libdir/gps3ext.so', 's3_export' LANGUAGE C STABLE;")
-			defer testhelper.AssertQueryRuns(connectionPool, "DROP FUNCTION public.write_to_s3()")
-			testhelper.AssertQueryRuns(connectionPool, "CREATE OR REPLACE FUNCTION public.read_from_s3() RETURNS integer AS '$libdir/gps3ext.so', 's3_import' LANGUAGE C STABLE;")
-			defer testhelper.AssertQueryRuns(connectionPool, "DROP FUNCTION public.read_from_s3()")
-			testhelper.AssertQueryRuns(connectionPool, "CREATE PROTOCOL s3 (writefunc = public.write_to_s3, readfunc = public.read_from_s3);")
-			defer testhelper.AssertQueryRuns(connectionPool, "DROP PROTOCOL s3")
+			testhelper.AssertQueryRuns(connectionPool,
+				"CREATE OR REPLACE FUNCTION public.write_to_s3() RETURNS integer AS '$libdir/gps3ext.so', 's3_export' LANGUAGE C STABLE;")
+			defer testhelper.AssertQueryRuns(connectionPool,
+				"DROP FUNCTION public.write_to_s3()")
+			testhelper.AssertQueryRuns(connectionPool,
+				"CREATE OR REPLACE FUNCTION public.read_from_s3() RETURNS integer AS '$libdir/gps3ext.so', 's3_import' LANGUAGE C STABLE;")
+			defer testhelper.AssertQueryRuns(connectionPool,
+				"DROP FUNCTION public.read_from_s3()")
+			testhelper.AssertQueryRuns(connectionPool,
+				"CREATE PROTOCOL s3 (writefunc = public.write_to_s3, readfunc = public.read_from_s3);")
+			defer testhelper.AssertQueryRuns(connectionPool,
+				"DROP PROTOCOL s3")
 
-			readFunctionOid := testutils.OidFromObjectName(connectionPool, "public", "read_from_s3", backup.TYPE_FUNCTION)
-			writeFunctionOid := testutils.OidFromObjectName(connectionPool, "public", "write_to_s3", backup.TYPE_FUNCTION)
+			readFunctionOid := testutils.OidFromObjectName(connectionPool,
+				"public", "read_from_s3", backup.TYPE_FUNCTION)
+			writeFunctionOid := testutils.OidFromObjectName(connectionPool,
+				"public", "write_to_s3", backup.TYPE_FUNCTION)
 
 			results := backup.GetExternalProtocols(connectionPool)
 
-			protocolDef := backup.ExternalProtocol{Oid: 1, Name: "s3", Owner: "testrole", Trusted: false, ReadFunction: readFunctionOid, WriteFunction: writeFunctionOid, Validator: 0}
+			protocolDef := backup.ExternalProtocol{
+				Oid: 1,
+				Name: "s3",
+				Owner: "testrole",
+				Trusted: false,
+				ReadFunction: readFunctionOid,
+				WriteFunction: writeFunctionOid,
+				Validator: 0}
 
 			Expect(results).To(HaveLen(1))
 			structmatcher.ExpectStructsToMatchExcluding(&protocolDef, &results[0], "Oid")
@@ -177,8 +312,10 @@ LOG ERRORS SEGMENT REJECT LIMIT 10 PERCENT`)
 	})
 	Describe("GetExternalPartitionInfo", func() {
 		AfterEach(func() {
-			testhelper.AssertQueryRuns(connectionPool, "DROP TABLE public.part_tbl")
-			testhelper.AssertQueryRuns(connectionPool, "DROP TABLE public.part_tbl_ext_part_")
+			testhelper.AssertQueryRuns(connectionPool,
+				"DROP TABLE public.part_tbl")
+			testhelper.AssertQueryRuns(connectionPool,
+				"DROP TABLE public.part_tbl_ext_part_")
 		})
 		It("returns a slice of external partition info for a named list partition", func() {
 			testhelper.AssertQueryRuns(connectionPool, `
@@ -192,7 +329,8 @@ PARTITION BY LIST (gender)
 CREATE EXTERNAL WEB TABLE public.part_tbl_ext_part_ (like public.part_tbl_1_prt_girls)
 EXECUTE 'echo -e "2\n1"' on host
 FORMAT 'csv';`)
-			testhelper.AssertQueryRuns(connectionPool, `ALTER TABLE public.part_tbl EXCHANGE PARTITION girls WITH TABLE public.part_tbl_ext_part_ WITHOUT VALIDATION;`)
+			testhelper.AssertQueryRuns(connectionPool,
+				`ALTER TABLE public.part_tbl EXCHANGE PARTITION girls WITH TABLE public.part_tbl_ext_part_ WITHOUT VALIDATION;`)
 
 			resultExtPartitions, resultPartInfoMap := backup.GetExternalPartitionInfo(connectionPool)
 
@@ -221,7 +359,8 @@ PARTITION BY RANGE (a)
 CREATE EXTERNAL WEB TABLE public.part_tbl_ext_part_ (like public.part_tbl_1_prt_1)
 EXECUTE 'echo -e "2\n1"' on host
 FORMAT 'csv';`)
-			testhelper.AssertQueryRuns(connectionPool, `ALTER TABLE public.part_tbl EXCHANGE PARTITION FOR (RANK(1)) WITH TABLE public.part_tbl_ext_part_ WITHOUT VALIDATION;`)
+			testhelper.AssertQueryRuns(connectionPool,
+				`ALTER TABLE public.part_tbl EXCHANGE PARTITION FOR (RANK(1)) WITH TABLE public.part_tbl_ext_part_ WITHOUT VALIDATION;`)
 
 			resultExtPartitions, resultPartInfoMap := backup.GetExternalPartitionInfo(connectionPool)
 
@@ -258,9 +397,10 @@ SUBPARTITION eur values ('eur'))
                   END (date '2017-01-01') EXCLUSIVE);
 `)
 
-			testhelper.AssertQueryRuns(connectionPool, `CREATE EXTERNAL TABLE public.part_tbl_ext_part_ (a int,b date,c text,d int) LOCATION ('gpfdist://127.0.0.1/apj') FORMAT 'text';`)
-			testhelper.AssertQueryRuns(connectionPool, `ALTER TABLE public.part_tbl ALTER PARTITION Dec16 EXCHANGE PARTITION apj WITH TABLE public.part_tbl_ext_part_ WITHOUT VALIDATION;`)
-
+			testhelper.AssertQueryRuns(connectionPool,
+				`CREATE EXTERNAL TABLE public.part_tbl_ext_part_ (a int,b date,c text,d int) LOCATION ('gpfdist://127.0.0.1/apj') FORMAT 'text';`)
+			testhelper.AssertQueryRuns(connectionPool,
+				`ALTER TABLE public.part_tbl ALTER PARTITION Dec16 EXCHANGE PARTITION apj WITH TABLE public.part_tbl_ext_part_ WITHOUT VALIDATION;`)
 			resultExtPartitions, _ := backup.GetExternalPartitionInfo(connectionPool)
 
 			Expect(resultExtPartitions).To(HaveLen(1))
@@ -295,9 +435,10 @@ PARTITION BY RANGE (year)
 ( START (2002) END (2005) EVERY (1));
 `)
 
-			testhelper.AssertQueryRuns(connectionPool, `CREATE EXTERNAL TABLE public.part_tbl_ext_part_ (like public.part_tbl_1_prt_3_2_prt_1_3_prt_europe) LOCATION ('gpfdist://127.0.0.1/apj') FORMAT 'text';`)
-			testhelper.AssertQueryRuns(connectionPool, `ALTER TABLE public.part_tbl ALTER PARTITION FOR (RANK(3)) ALTER PARTITION FOR (RANK(1)) EXCHANGE PARTITION europe WITH TABLE public.part_tbl_ext_part_ WITHOUT VALIDATION;`)
-
+			testhelper.AssertQueryRuns(connectionPool,
+				`CREATE EXTERNAL TABLE public.part_tbl_ext_part_ (like public.part_tbl_1_prt_3_2_prt_1_3_prt_europe) LOCATION ('gpfdist://127.0.0.1/apj') FORMAT 'text';`)
+			testhelper.AssertQueryRuns(connectionPool,
+				`ALTER TABLE public.part_tbl ALTER PARTITION FOR (RANK(3)) ALTER PARTITION FOR (RANK(1)) EXCHANGE PARTITION europe WITH TABLE public.part_tbl_ext_part_ WITHOUT VALIDATION;`)
 			resultExtPartitions, _ := backup.GetExternalPartitionInfo(connectionPool)
 
 			Expect(resultExtPartitions).To(HaveLen(1))
@@ -312,8 +453,10 @@ PARTITION BY RANGE (year)
 				PartitionRank:          0,
 				IsExternal:             true,
 			}
-			expectedExternalPartition.RelationOid = testutils.OidFromObjectName(connectionPool, "public", "part_tbl_1_prt_3_2_prt_1_3_prt_europe", backup.TYPE_RELATION)
-			structmatcher.ExpectStructsToMatchExcluding(&expectedExternalPartition, &resultExtPartitions[0], "PartitionRuleOid", "PartitionParentRuleOid", "ParentRelationOid")
+			expectedExternalPartition.RelationOid = testutils.OidFromObjectName(connectionPool,
+				"public", "part_tbl_1_prt_3_2_prt_1_3_prt_europe", backup.TYPE_RELATION)
+			structmatcher.ExpectStructsToMatchExcluding(&expectedExternalPartition, &resultExtPartitions[0],
+				"PartitionRuleOid", "PartitionParentRuleOid", "ParentRelationOid")
 		})
 	})
 })

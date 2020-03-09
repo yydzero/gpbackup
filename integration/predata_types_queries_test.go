@@ -225,7 +225,13 @@ var _ = Describe("backup integration tests", func() {
 		})
 		It("returns a slice for a domain type", func() {
 			domainType := backup.Domain{
-				Oid: 1, Schema: "public", Name: "domain1", DefaultVal: "'abc'::bpchar", BaseType: "character(8)", NotNull: false, Collation: "",
+				Oid: 1,
+				Schema: "public",
+				Name: "domain1",
+				DefaultVal: "'abc'::bpchar",
+				BaseType: "character(8)",
+				NotNull: false,
+				Collation: "",
 			}
 			testhelper.AssertQueryRuns(connectionPool, "CREATE DOMAIN public.domain1 AS character(8) DEFAULT 'abc'")
 			defer testhelper.AssertQueryRuns(connectionPool, "DROP DOMAIN public.domain1")
@@ -238,7 +244,13 @@ var _ = Describe("backup integration tests", func() {
 		It("returns a slice for a domain type with a collation", func() {
 			testutils.SkipIfBefore6(connectionPool)
 			domainType := backup.Domain{
-				Oid: 1, Schema: "public", Name: "domain1", DefaultVal: "'abc'::bpchar", BaseType: "character(8)", NotNull: false, Collation: "public.some_coll",
+				Oid: 1,
+				Schema: "public",
+				Name: "domain1",
+				DefaultVal: "'abc'::bpchar",
+				BaseType: "character(8)",
+				NotNull: false,
+				Collation: "public.some_coll",
 			}
 			testhelper.AssertQueryRuns(connectionPool, "CREATE COLLATION public.some_coll (lc_collate = 'POSIX', lc_ctype = 'POSIX')")
 			defer testhelper.AssertQueryRuns(connectionPool, "DROP COLLATION public.some_coll")

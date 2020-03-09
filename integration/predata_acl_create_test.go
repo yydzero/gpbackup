@@ -17,13 +17,17 @@ var _ = Describe("backup integration create statement tests", func() {
 	})
 	Describe("PrintDefaultPrivilegesStatements", func() {
 		It("create default privileges for a table", func() {
-			privs := []backup.ACL{{Grantee: "", Select: true}, testutils.DefaultACLForType("testrole", "TABLE")}
-			defaultPrivileges := []backup.DefaultPrivileges{{Schema: "", Privileges: privs, ObjectType: "r", Owner: "testrole"}}
+			privs := []backup.ACL{{
+				Grantee: "", Select: true},
+				testutils.DefaultACLForType("testrole", "TABLE")}
+			defaultPrivileges := []backup.DefaultPrivileges{{
+				Schema: "", Privileges: privs, ObjectType: "r", Owner: "testrole"}}
 
 			backup.PrintDefaultPrivilegesStatements(backupfile, tocfile, defaultPrivileges)
 
 			testhelper.AssertQueryRuns(connectionPool, buffer.String())
-			defer testhelper.AssertQueryRuns(connectionPool, "ALTER DEFAULT PRIVILEGES FOR ROLE testrole REVOKE ALL ON TABLES FROM PUBLIC;")
+			defer testhelper.AssertQueryRuns(connectionPool,
+				"ALTER DEFAULT PRIVILEGES FOR ROLE testrole REVOKE ALL ON TABLES FROM PUBLIC;")
 
 			resultPrivileges := backup.GetDefaultPrivileges(connectionPool)
 
@@ -32,14 +36,17 @@ var _ = Describe("backup integration create statement tests", func() {
 		})
 		It("create default privileges for a sequence with grant option in schema", func() {
 			privs := []backup.ACL{{Grantee: "testrole", SelectWithGrant: true}}
-			defaultPrivileges := []backup.DefaultPrivileges{{Schema: "", Privileges: privs, ObjectType: "S", Owner: "testrole"}}
+			defaultPrivileges := []backup.DefaultPrivileges{{
+				Schema: "", Privileges: privs, ObjectType: "S", Owner: "testrole"}}
 
 			backup.PrintDefaultPrivilegesStatements(backupfile, tocfile, defaultPrivileges)
 
 			testhelper.AssertQueryRuns(connectionPool, buffer.String())
 			// Both of these statements are required to remove the entry from the pg_default_acl catalog table, otherwise it will pollute other tests
-			defer testhelper.AssertQueryRuns(connectionPool, "ALTER DEFAULT PRIVILEGES FOR ROLE testrole GRANT ALL ON SEQUENCES TO testrole;")
-			defer testhelper.AssertQueryRuns(connectionPool, "ALTER DEFAULT PRIVILEGES FOR ROLE testrole REVOKE ALL ON SEQUENCES FROM testrole;")
+			defer testhelper.AssertQueryRuns(connectionPool,
+				"ALTER DEFAULT PRIVILEGES FOR ROLE testrole GRANT ALL ON SEQUENCES TO testrole;")
+			defer testhelper.AssertQueryRuns(connectionPool,
+				"ALTER DEFAULT PRIVILEGES FOR ROLE testrole REVOKE ALL ON SEQUENCES FROM testrole;")
 
 			resultPrivileges := backup.GetDefaultPrivileges(connectionPool)
 

@@ -15,15 +15,24 @@ var _ = Describe("backup integration tests", func() {
 	Describe("GetMetadataForObjectType", func() {
 		Context("default metadata for all objects of one type", func() {
 			It("returns a slice of metadata with modified privileges", func() {
-				testhelper.AssertQueryRuns(connectionPool, "CREATE TABLE public.foo(i int)")
-				defer testhelper.AssertQueryRuns(connectionPool, "DROP TABLE public.foo")
-				testhelper.AssertQueryRuns(connectionPool, "REVOKE DELETE ON TABLE public.foo FROM testrole")
-				testhelper.AssertQueryRuns(connectionPool, "CREATE TABLE public.bar(i int)")
-				defer testhelper.AssertQueryRuns(connectionPool, "DROP TABLE public.bar")
-				testhelper.AssertQueryRuns(connectionPool, "REVOKE ALL ON TABLE public.bar FROM testrole")
-				testhelper.AssertQueryRuns(connectionPool, "CREATE TABLE public.baz(i int)")
-				defer testhelper.AssertQueryRuns(connectionPool, "DROP TABLE public.baz")
-				testhelper.AssertQueryRuns(connectionPool, "GRANT ALL ON TABLE public.baz TO anothertestrole")
+				testhelper.AssertQueryRuns(connectionPool,
+					"CREATE TABLE public.foo(i int)")
+				defer testhelper.AssertQueryRuns(connectionPool,
+					"DROP TABLE public.foo")
+				testhelper.AssertQueryRuns(connectionPool,
+					"REVOKE DELETE ON TABLE public.foo FROM testrole")
+				testhelper.AssertQueryRuns(connectionPool,
+					"CREATE TABLE public.bar(i int)")
+				defer testhelper.AssertQueryRuns(connectionPool,
+					"DROP TABLE public.bar")
+				testhelper.AssertQueryRuns(connectionPool,
+					"REVOKE ALL ON TABLE public.bar FROM testrole")
+				testhelper.AssertQueryRuns(connectionPool,
+					"CREATE TABLE public.baz(i int)")
+				defer testhelper.AssertQueryRuns(connectionPool,
+					"DROP TABLE public.baz")
+				testhelper.AssertQueryRuns(connectionPool,
+					"GRANT ALL ON TABLE public.baz TO anothertestrole")
 
 				resultMetadataMap := backup.GetMetadataForObjectType(connectionPool, backup.TYPE_RELATION)
 
@@ -42,9 +51,12 @@ var _ = Describe("backup integration tests", func() {
 				structmatcher.ExpectStructsToMatch(&resultBaz, &expectedBaz)
 			})
 			It("returns a slice of default metadata for a database", func() {
-				testhelper.AssertQueryRuns(connectionPool, "GRANT ALL ON DATABASE testdb TO anothertestrole")
-				defer testhelper.AssertQueryRuns(connectionPool, "REVOKE ALL ON DATABASE testdb FROM anothertestRole")
-				testhelper.AssertQueryRuns(connectionPool, "COMMENT ON DATABASE testdb IS 'This is a database comment.'")
+				testhelper.AssertQueryRuns(connectionPool,
+					"GRANT ALL ON DATABASE testdb TO anothertestrole")
+				defer testhelper.AssertQueryRuns(connectionPool,
+					"REVOKE ALL ON DATABASE testdb FROM anothertestRole")
+				testhelper.AssertQueryRuns(connectionPool,
+					"COMMENT ON DATABASE testdb IS 'This is a database comment.'")
 				testutils.CreateSecurityLabelIfGPDB6(connectionPool, "DATABASE", "testdb")
 				expectedMetadata := backup.ObjectMetadata{Privileges: []backup.ACL{
 					{Grantee: "", Temporary: true, Connect: true},
@@ -80,11 +92,16 @@ var _ = Describe("backup integration tests", func() {
 				structmatcher.ExpectStructsToMatchExcluding(&expectedMetadata, &resultMetadata, "Oid")
 			})
 			It("returns a slice of metadata with the owner in quotes", func() {
-				testhelper.AssertQueryRuns(connectionPool, `CREATE ROLE "Role1"`)
-				defer testhelper.AssertQueryRuns(connectionPool, `DROP ROLE "Role1"`)
-				testhelper.AssertQueryRuns(connectionPool, "CREATE TABLE public.testtable(i int)")
-				defer testhelper.AssertQueryRuns(connectionPool, "DROP TABLE public.testtable")
-				testhelper.AssertQueryRuns(connectionPool, `ALTER TABLE public.testtable OWNER TO "Role1"`)
+				testhelper.AssertQueryRuns(connectionPool,
+					`CREATE ROLE "Role1"`)
+				defer testhelper.AssertQueryRuns(connectionPool,
+					`DROP ROLE "Role1"`)
+				testhelper.AssertQueryRuns(connectionPool,
+					"CREATE TABLE public.testtable(i int)")
+				defer testhelper.AssertQueryRuns(connectionPool,
+					"DROP TABLE public.testtable")
+				testhelper.AssertQueryRuns(connectionPool,
+					`ALTER TABLE public.testtable OWNER TO "Role1"`)
 
 				resultMetadataMap := backup.GetMetadataForObjectType(connectionPool, backup.TYPE_RELATION)
 
@@ -147,10 +164,14 @@ var _ = Describe("backup integration tests", func() {
 				testhelper.AssertQueryRuns(connectionPool, `CREATE FUNCTION public.add(integer, integer) RETURNS integer
 AS 'SELECT $1 + $2'
 LANGUAGE SQL`)
-				defer testhelper.AssertQueryRuns(connectionPool, "DROP FUNCTION public.add(integer, integer)")
-				testhelper.AssertQueryRuns(connectionPool, "REVOKE ALL ON FUNCTION public.add(integer, integer) FROM public")
-				testhelper.AssertQueryRuns(connectionPool, "REVOKE ALL ON FUNCTION public.add(integer, integer) FROM testrole")
-				testutils.CreateSecurityLabelIfGPDB6(connectionPool, "FUNCTION", "public.add(integer, integer)")
+				defer testhelper.AssertQueryRuns(connectionPool,
+					"DROP FUNCTION public.add(integer, integer)")
+				testhelper.AssertQueryRuns(connectionPool,
+					"REVOKE ALL ON FUNCTION public.add(integer, integer) FROM public")
+				testhelper.AssertQueryRuns(connectionPool,
+					"REVOKE ALL ON FUNCTION public.add(integer, integer) FROM testrole")
+				testutils.CreateSecurityLabelIfGPDB6(connectionPool,
+					"FUNCTION", "public.add(integer, integer)")
 
 				resultMetadataMap := backup.GetMetadataForObjectType(connectionPool, backup.TYPE_FUNCTION)
 				Expect(resultMetadataMap).To(HaveLen(1))
@@ -176,12 +197,16 @@ LANGUAGE SQL`)
 				testhelper.AssertQueryRuns(connectionPool, `CREATE FUNCTION public.add(integer, integer) RETURNS integer
 AS 'SELECT $1 + $2'
 LANGUAGE SQL`)
-				defer testhelper.AssertQueryRuns(connectionPool, "DROP FUNCTION public.add(integer, integer)")
+				defer testhelper.AssertQueryRuns(connectionPool,
+					"DROP FUNCTION public.add(integer, integer)")
 				// for Function objects:
 				// `public` and the user that created the function (`testrole`) exist in the ACL by default. However, the ACL is not explicitly represented unless these defaults are modified.
-				testhelper.AssertQueryRuns(connectionPool, "GRANT ALL ON FUNCTION public.add(integer, integer) TO testrole")
-				testhelper.AssertQueryRuns(connectionPool, "REVOKE ALL ON FUNCTION public.add(integer, integer) FROM PUBLIC")
-				testhelper.AssertQueryRuns(connectionPool, "COMMENT ON FUNCTION public.add(integer, integer) IS 'This is a function comment.'")
+				testhelper.AssertQueryRuns(connectionPool,
+					"GRANT ALL ON FUNCTION public.add(integer, integer) TO testrole")
+				testhelper.AssertQueryRuns(connectionPool,
+					"REVOKE ALL ON FUNCTION public.add(integer, integer) FROM PUBLIC")
+				testhelper.AssertQueryRuns(connectionPool,
+					"COMMENT ON FUNCTION public.add(integer, integer) IS 'This is a function comment.'")
 				testutils.CreateSecurityLabelIfGPDB6(connectionPool, "FUNCTION", "public.add(integer, integer)")
 
 				resultMetadataMap := backup.GetMetadataForObjectType(connectionPool, backup.TYPE_FUNCTION)
@@ -195,11 +220,16 @@ LANGUAGE SQL`)
 				structmatcher.ExpectStructsToMatchExcluding(&expectedMetadata, &resultMetadata, "Oid")
 			})
 			It("returns a slice of default metadata for a view", func() {
-				testhelper.AssertQueryRuns(connectionPool, `CREATE VIEW public.testview AS SELECT * FROM pg_class`)
-				defer testhelper.AssertQueryRuns(connectionPool, "DROP VIEW public.testview")
-				testhelper.AssertQueryRuns(connectionPool, "GRANT ALL ON public.testview TO testrole")
-				testhelper.AssertQueryRuns(connectionPool, "COMMENT ON VIEW public.testview IS 'This is a view comment.'")
-				testutils.CreateSecurityLabelIfGPDB6(connectionPool, "VIEW", "public.testview")
+				testhelper.AssertQueryRuns(connectionPool,
+					`CREATE VIEW public.testview AS SELECT * FROM pg_class`)
+				defer testhelper.AssertQueryRuns(connectionPool,
+					"DROP VIEW public.testview")
+				testhelper.AssertQueryRuns(connectionPool,
+					"GRANT ALL ON public.testview TO testrole")
+				testhelper.AssertQueryRuns(connectionPool,
+					"COMMENT ON VIEW public.testview IS 'This is a view comment.'")
+				testutils.CreateSecurityLabelIfGPDB6(connectionPool,
+					"VIEW", "public.testview")
 
 				resultMetadataMap := backup.GetMetadataForObjectType(connectionPool, backup.TYPE_RELATION)
 
@@ -213,11 +243,16 @@ LANGUAGE SQL`)
 				if connectionPool.Version.Before("6.2") {
 					Skip("Test only applicable to GPDB 6.2 and above")
 				}
-				testhelper.AssertQueryRuns(connectionPool, `CREATE MATERIALIZED VIEW public.testmview AS SELECT * FROM pg_class`)
-				defer testhelper.AssertQueryRuns(connectionPool, "DROP MATERIALIZED VIEW public.testmview")
-				testhelper.AssertQueryRuns(connectionPool, "GRANT ALL ON public.testmview TO testrole")
-				testhelper.AssertQueryRuns(connectionPool, "COMMENT ON MATERIALIZED VIEW public.testmview IS 'This is a materialized view comment.'")
-				testutils.CreateSecurityLabelIfGPDB6(connectionPool, "MATERIALIZED VIEW", "public.testmview")
+				testhelper.AssertQueryRuns(connectionPool,
+					`CREATE MATERIALIZED VIEW public.testmview AS SELECT * FROM pg_class`)
+				defer testhelper.AssertQueryRuns(connectionPool,
+					"DROP MATERIALIZED VIEW public.testmview")
+				testhelper.AssertQueryRuns(connectionPool,
+					"GRANT ALL ON public.testmview TO testrole")
+				testhelper.AssertQueryRuns(connectionPool,
+					"COMMENT ON MATERIALIZED VIEW public.testmview IS 'This is a materialized view comment.'")
+				testutils.CreateSecurityLabelIfGPDB6(connectionPool,
+					"MATERIALIZED VIEW", "public.testmview")
 
 				resultMetadataMap := backup.GetMetadataForObjectType(connectionPool, backup.TYPE_RELATION)
 
@@ -228,11 +263,16 @@ LANGUAGE SQL`)
 				structmatcher.ExpectStructsToMatchExcluding(&expectedMetadata, &resultMetadata, "Oid")
 			})
 			It("returns a slice of default metadata for a schema", func() {
-				testhelper.AssertQueryRuns(connectionPool, `CREATE SCHEMA testschema`)
-				defer testhelper.AssertQueryRuns(connectionPool, "DROP SCHEMA testschema")
-				testhelper.AssertQueryRuns(connectionPool, "GRANT ALL ON SCHEMA testschema TO testrole")
-				testhelper.AssertQueryRuns(connectionPool, "COMMENT ON SCHEMA testschema IS 'This is a schema comment.'")
-				testutils.CreateSecurityLabelIfGPDB6(connectionPool, "SCHEMA", "testschema")
+				testhelper.AssertQueryRuns(connectionPool,
+					`CREATE SCHEMA testschema`)
+				defer testhelper.AssertQueryRuns(connectionPool,
+					"DROP SCHEMA testschema")
+				testhelper.AssertQueryRuns(connectionPool,
+					"GRANT ALL ON SCHEMA testschema TO testrole")
+				testhelper.AssertQueryRuns(connectionPool,
+					"COMMENT ON SCHEMA testschema IS 'This is a schema comment.'")
+				testutils.CreateSecurityLabelIfGPDB6(connectionPool,
+					"SCHEMA", "testschema")
 
 				resultMetadataMap := backup.GetMetadataForObjectType(connectionPool, backup.TYPE_SCHEMA)
 
@@ -259,8 +299,10 @@ LANGUAGE SQL`)
 			   IMMUTABLE
 			   RETURNS NULL ON NULL INPUT;
 			`)
-				defer testhelper.AssertQueryRuns(connectionPool, "DROP FUNCTION public.mypre_accum(numeric, numeric)")
-				testhelper.AssertQueryRuns(connectionPool, `CREATE AGGREGATE public.agg_prefunc(numeric, numeric) (
+				defer testhelper.AssertQueryRuns(connectionPool,
+					"DROP FUNCTION public.mypre_accum(numeric, numeric)")
+				testhelper.AssertQueryRuns(connectionPool,
+					`CREATE AGGREGATE public.agg_prefunc(numeric, numeric) (
 	SFUNC = public.mysfunc_accum,
 	STYPE = numeric,
 	PREFUNC = public.mypre_accum,
@@ -284,10 +326,14 @@ LANGUAGE SQL`)
 				structmatcher.ExpectStructsToMatchExcluding(&expectedMetadata, &resultMetadata, "Oid")
 			})
 			It("returns a slice of default metadata for a type", func() {
-				testhelper.AssertQueryRuns(connectionPool, `CREATE TYPE public.testtype AS (name text, num numeric)`)
-				defer testhelper.AssertQueryRuns(connectionPool, "DROP TYPE public.testtype")
-				testhelper.AssertQueryRuns(connectionPool, "COMMENT ON TYPE public.testtype IS 'This is a type comment.'")
-				testutils.CreateSecurityLabelIfGPDB6(connectionPool, "TYPE", "public.testtype")
+				testhelper.AssertQueryRuns(connectionPool,
+					`CREATE TYPE public.testtype AS (name text, num numeric)`)
+				defer testhelper.AssertQueryRuns(connectionPool,
+					"DROP TYPE public.testtype")
+				testhelper.AssertQueryRuns(connectionPool,
+					"COMMENT ON TYPE public.testtype IS 'This is a type comment.'")
+				testutils.CreateSecurityLabelIfGPDB6(connectionPool,
+					"TYPE", "public.testtype")
 
 				resultMetadataMap := backup.GetMetadataForObjectType(connectionPool, backup.TYPE_TYPE)
 
@@ -342,10 +388,12 @@ LANGUAGE SQL`)
 				structmatcher.ExpectStructsToMatchExcluding(&expectedMetadata, &resultMetadata, "Oid")
 			})
 			It("returns a slice of default metadata for an operator", func() {
-				testhelper.AssertQueryRuns(connectionPool, "CREATE OPERATOR public.#### (LEFTARG = bigint, PROCEDURE = numeric_fac)")
-				defer testhelper.AssertQueryRuns(connectionPool, "DROP OPERATOR public.#### (bigint, NONE)")
-
-				testhelper.AssertQueryRuns(connectionPool, "COMMENT ON OPERATOR public.#### (bigint, NONE) IS 'This is an operator comment.'")
+				testhelper.AssertQueryRuns(connectionPool,
+					"CREATE OPERATOR public.#### (LEFTARG = bigint, PROCEDURE = numeric_fac)")
+				defer testhelper.AssertQueryRuns(connectionPool,
+					"DROP OPERATOR public.#### (bigint, NONE)")
+				testhelper.AssertQueryRuns(connectionPool,
+					"COMMENT ON OPERATOR public.#### (bigint, NONE) IS 'This is an operator comment.'")
 
 				resultMetadataMap := backup.GetMetadataForObjectType(connectionPool, backup.TYPE_OPERATOR)
 
@@ -371,24 +419,31 @@ LANGUAGE SQL`)
 			It("returns a slice of default metadata for an operator class", func() {
 				testhelper.AssertQueryRuns(connectionPool, "CREATE OPERATOR CLASS public.testclass FOR TYPE int USING hash AS STORAGE int")
 				if connectionPool.Version.Before("5") {
-					defer testhelper.AssertQueryRuns(connectionPool, "DROP OPERATOR CLASS public.testclass USING hash")
+					defer testhelper.AssertQueryRuns(connectionPool,
+						"DROP OPERATOR CLASS public.testclass USING hash")
 				} else {
-					defer testhelper.AssertQueryRuns(connectionPool, "DROP OPERATOR FAMILY public.testclass USING hash")
+					defer testhelper.AssertQueryRuns(connectionPool,
+						"DROP OPERATOR FAMILY public.testclass USING hash")
 				}
-				testhelper.AssertQueryRuns(connectionPool, "COMMENT ON OPERATOR CLASS public.testclass USING hash IS 'This is an operator class comment.'")
+				testhelper.AssertQueryRuns(connectionPool,
+					"COMMENT ON OPERATOR CLASS public.testclass USING hash IS 'This is an operator class comment.'")
 
 				resultMetadataMap := backup.GetMetadataForObjectType(connectionPool, backup.TYPE_OPERATORCLASS)
 
 				uniqueID := testutils.UniqueIDFromObjectName(connectionPool, "public", "testclass", backup.TYPE_OPERATORCLASS)
-				expectedMetadata := testutils.DefaultMetadata("OPERATOR CLASS", false, true, true, false)
+				expectedMetadata := testutils.DefaultMetadata("OPERATOR CLASS",
+					false, true, true, false)
 				resultMetadata := resultMetadataMap[uniqueID]
 				structmatcher.ExpectStructsToMatchExcluding(&expectedMetadata, &resultMetadata, "Oid")
 			})
 			It("returns a slice of default metadata for a text search dictionary", func() {
 				testutils.SkipIfBefore5(connectionPool)
-				testhelper.AssertQueryRuns(connectionPool, "CREATE TEXT SEARCH DICTIONARY public.testdictionary(TEMPLATE = snowball, LANGUAGE = 'russian', STOPWORDS = 'russian');")
-				defer testhelper.AssertQueryRuns(connectionPool, "DROP TEXT SEARCH DICTIONARY public.testdictionary")
-				testhelper.AssertQueryRuns(connectionPool, "COMMENT ON TEXT SEARCH DICTIONARY public.testdictionary IS 'This is a text search dictionary comment.'")
+				testhelper.AssertQueryRuns(connectionPool,
+					"CREATE TEXT SEARCH DICTIONARY public.testdictionary(TEMPLATE = snowball, LANGUAGE = 'russian', STOPWORDS = 'russian');")
+				defer testhelper.AssertQueryRuns(connectionPool,
+					"DROP TEXT SEARCH DICTIONARY public.testdictionary")
+				testhelper.AssertQueryRuns(connectionPool,
+					"COMMENT ON TEXT SEARCH DICTIONARY public.testdictionary IS 'This is a text search dictionary comment.'")
 
 				resultMetadataMap := backup.GetMetadataForObjectType(connectionPool, backup.TYPE_TSDICTIONARY)
 
@@ -403,9 +458,12 @@ LANGUAGE SQL`)
 				resultMetadataMap := backup.GetMetadataForObjectType(connectionPool, backup.TYPE_TSCONFIGURATION)
 				configurationMetadata := testutils.DefaultMetadata("TEXT SEARCH CONFIGURATION", false, true, true, false)
 
-				testhelper.AssertQueryRuns(connectionPool, `CREATE TEXT SEARCH CONFIGURATION public.testconfiguration (PARSER = pg_catalog."default");`)
-				defer testhelper.AssertQueryRuns(connectionPool, "DROP TEXT SEARCH CONFIGURATION public.testconfiguration")
-				testhelper.AssertQueryRuns(connectionPool, "COMMENT ON TEXT SEARCH CONFIGURATION public.testconfiguration IS 'This is a text search configuration comment.'")
+				testhelper.AssertQueryRuns(connectionPool,
+					`CREATE TEXT SEARCH CONFIGURATION public.testconfiguration (PARSER = pg_catalog."default");`)
+				defer testhelper.AssertQueryRuns(connectionPool,
+					"DROP TEXT SEARCH CONFIGURATION public.testconfiguration")
+				testhelper.AssertQueryRuns(connectionPool,
+					"COMMENT ON TEXT SEARCH CONFIGURATION public.testconfiguration IS 'This is a text search configuration comment.'")
 
 				uniqueID := testutils.UniqueIDFromObjectName(connectionPool, "public", "testconfiguration", backup.TYPE_TSCONFIGURATION)
 				resultMetadataMap = backup.GetMetadataForObjectType(connectionPool, backup.TYPE_TSCONFIGURATION)
@@ -416,11 +474,12 @@ LANGUAGE SQL`)
 			})
 			It("returns a slice of default metadata for a foreign data wrapper", func() {
 				testutils.SkipIfBefore6(connectionPool)
-				testhelper.AssertQueryRuns(connectionPool, "CREATE FOREIGN DATA WRAPPER foreignwrapper")
-				defer testhelper.AssertQueryRuns(connectionPool, "DROP FOREIGN DATA WRAPPER foreignwrapper")
+				testhelper.AssertQueryRuns(connectionPool,
+					"CREATE FOREIGN DATA WRAPPER foreignwrapper")
+				defer testhelper.AssertQueryRuns(connectionPool,
+					"DROP FOREIGN DATA WRAPPER foreignwrapper")
 
 				testhelper.AssertQueryRuns(connectionPool, "GRANT ALL ON FOREIGN DATA WRAPPER foreignwrapper TO testrole")
-
 				resultMetadataMap := backup.GetMetadataForObjectType(connectionPool, backup.TYPE_FOREIGNDATAWRAPPER)
 
 				uniqueID := testutils.UniqueIDFromObjectName(connectionPool, "", "foreignwrapper", backup.TYPE_FOREIGNDATAWRAPPER)

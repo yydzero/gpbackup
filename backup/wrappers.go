@@ -551,8 +551,9 @@ func backupCollations(metadataFile *utils.FileWithByteCount) {
 }
 
 func backupExtensions(metadataFile *utils.FileWithByteCount) {
-	if len(MustGetFlagStringArray(options.INCLUDE_SCHEMA)) == 0 && connectionPool.Version.AtLeast("5") {
-		//backupExtensions(metadataFile)
+	if !(len(MustGetFlagStringArray(options.INCLUDE_SCHEMA)) == 0 &&
+		connectionPool.Version.AtLeast("5")) {
+		return
 	}
 	gplog.Verbose("Writing CREATE EXTENSION statements to metadata file")
 	extensions := GetExtensions(connectionPool)

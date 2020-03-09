@@ -22,9 +22,21 @@ var _ = Describe("backup integration create statement tests", func() {
 			funcMetadata := backup.ObjectMetadata{}
 			It("creates a function with a simple return type", func() {
 				addFunction := backup.Function{
-					Schema: "public", Name: "add", ReturnsSet: false, FunctionBody: "SELECT $1 + $2",
-					BinaryPath: "", Arguments: "integer, integer", IdentArgs: "integer, integer", ResultType: "integer",
-					Volatility: "v", IsStrict: false, IsSecurityDefiner: false, Config: "", NumRows: 0, Language: "sql", ExecLocation: "a",
+					Schema: "public",
+					Name: "add",
+					ReturnsSet: false,
+					FunctionBody: "SELECT $1 + $2",
+					BinaryPath: "",
+					Arguments: "integer, integer",
+					IdentArgs: "integer, integer",
+					ResultType: "integer",
+					Volatility: "v",
+					IsStrict: false,
+					IsSecurityDefiner: false,
+					Config: "",
+					NumRows: 0,
+					Language: "sql",
+					ExecLocation: "a",
 				}
 
 				metadata := testutils.DefaultMetadata("FUNCTION", true, true, true, false)
@@ -40,9 +52,19 @@ var _ = Describe("backup integration create statement tests", func() {
 			})
 			It("creates a function that returns a set", func() {
 				appendFunction := backup.Function{
-					Schema: "public", Name: "append", ReturnsSet: true, FunctionBody: "SELECT ($1, $2)",
-					BinaryPath: "", Arguments: "integer, integer", IdentArgs: "integer, integer", ResultType: "SETOF record",
-					Volatility: "s", IsStrict: true, IsSecurityDefiner: true, Language: "sql", ExecLocation: "a",
+					Schema: "public",
+					Name: "append",
+					ReturnsSet: true,
+					FunctionBody: "SELECT ($1, $2)",
+					BinaryPath: "",
+					Arguments: "integer, integer",
+					IdentArgs: "integer, integer",
+					ResultType: "SETOF record",
+					Volatility: "s",
+					IsStrict: true,
+					IsSecurityDefiner: true,
+					Language: "sql",
+					ExecLocation: "a",
 				}
 
 				backup.PrintCreateFunctionStatement(backupfile, tocfile, appendFunction, funcMetadata)
@@ -57,9 +79,19 @@ var _ = Describe("backup integration create statement tests", func() {
 			})
 			It("creates a function that returns a table", func() {
 				dupFunction := backup.Function{
-					Schema: "public", Name: "dup", ReturnsSet: true, FunctionBody: "SELECT $1, CAST($1 AS text) || ' is text'",
-					BinaryPath: "", Arguments: "integer", IdentArgs: "integer", ResultType: "TABLE(f1 integer, f2 text)",
-					Volatility: "v", IsStrict: false, IsSecurityDefiner: false, Language: "sql", ExecLocation: "a",
+					Schema: "public",
+					Name: "dup",
+					ReturnsSet: true,
+					FunctionBody: "SELECT $1, CAST($1 AS text) || ' is text'",
+					BinaryPath: "",
+					Arguments: "integer",
+					IdentArgs: "integer",
+					ResultType: "TABLE(f1 integer, f2 text)",
+					Volatility: "v",
+					IsStrict: false,
+					IsSecurityDefiner: false,
+					Language: "sql",
+					ExecLocation: "a",
 				}
 
 				backup.PrintCreateFunctionStatement(backupfile, tocfile, dupFunction, funcMetadata)
@@ -80,10 +112,23 @@ var _ = Describe("backup integration create statement tests", func() {
 			funcMetadata := backup.ObjectMetadata{}
 			It("creates a function with a simple return type", func() {
 				addFunction := backup.Function{
-					Schema: "public", Name: "add", ReturnsSet: false, FunctionBody: "SELECT $1 + $2",
-					BinaryPath: "", Arguments: "integer, integer", IdentArgs: "integer, integer", ResultType: "integer",
-					Volatility: "v", IsStrict: false, IsSecurityDefiner: false, Config: "", Cost: 100, NumRows: 0, DataAccess: "c",
-					Language: "sql", ExecLocation: "a",
+					Schema: "public",
+					Name: "add",
+					ReturnsSet: false,
+					FunctionBody: "SELECT $1 + $2",
+					BinaryPath: "",
+					Arguments: "integer, integer",
+					IdentArgs: "integer, integer",
+					ResultType: "integer",
+					Volatility: "v",
+					IsStrict: false,
+					IsSecurityDefiner: false,
+					Config: "",
+					Cost: 100,
+					NumRows: 0,
+					DataAccess: "c",
+					Language: "sql",
+					ExecLocation: "a",
 				}
 
 				metadata := testutils.DefaultMetadata("FUNCTION", true, true, true, includeSecurityLabels)

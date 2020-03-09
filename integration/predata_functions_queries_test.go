@@ -110,15 +110,45 @@ EXECUTE ON ALL SEGMENTS;`)
 			results := backup.GetFunctions(connectionPool)
 
 			srfOnMasterFunction := backup.Function{
-				Schema: "public", Name: "srf_on_master", ReturnsSet: false, FunctionBody: "SELECT $1 + $2",
-				BinaryPath: "", Arguments: "integer, integer", IdentArgs: "integer, integer", ResultType: "integer",
-				Volatility: "v", IsStrict: false, IsSecurityDefiner: false, Config: "", Cost: 100, NumRows: 0, DataAccess: "c",
-				Language: "sql", IsWindow: true, ExecLocation: "m"}
+				Schema: "public",
+				Name: "srf_on_master",
+				ReturnsSet: false,
+				FunctionBody: "SELECT $1 + $2",
+				BinaryPath: "",
+				Arguments: "integer, integer",
+				IdentArgs: "integer, integer",
+				ResultType: "integer",
+				Volatility: "v",
+				IsStrict: false,
+				IsSecurityDefiner: false,
+				Config: "",
+				Cost: 100,
+				NumRows: 0,
+				DataAccess: "c",
+				Language: "sql",
+				IsWindow: true,
+				ExecLocation: "m",
+			}
 			srfOnAllSegmentsFunction := backup.Function{
-				Schema: "public", Name: "srf_on_all_segments", ReturnsSet: false, FunctionBody: "SELECT $1 + $2",
-				BinaryPath: "", Arguments: "integer, integer", IdentArgs: "integer, integer", ResultType: "integer",
-				Volatility: "v", IsStrict: false, IsSecurityDefiner: false, Config: "", Cost: 100, NumRows: 0, DataAccess: "c",
-				Language: "sql", IsWindow: true, ExecLocation: "s"}
+				Schema: "public",
+				Name: "srf_on_all_segments",
+				ReturnsSet: false,
+				FunctionBody: "SELECT $1 + $2",
+				BinaryPath: "",
+				Arguments: "integer, integer",
+				IdentArgs: "integer, integer",
+				ResultType: "integer",
+				Volatility: "v",
+				IsStrict: false,
+				IsSecurityDefiner: false,
+				Config: "",
+				Cost: 100,
+				NumRows: 0,
+				DataAccess: "c",
+				Language: "sql",
+				IsWindow: true,
+				ExecLocation: "s",
+			}
 
 			Expect(results).To(HaveLen(2))
 			structmatcher.ExpectStructsToMatchExcluding(&results[0], &srfOnAllSegmentsFunction, "Oid")
@@ -144,10 +174,25 @@ MODIFIES SQL DATA
 			results := backup.GetFunctions(connectionPool)
 
 			appendFunction := backup.Function{
-				Schema: "public", Name: "append", ReturnsSet: true, FunctionBody: "SELECT ($1, $2)",
-				BinaryPath: "", Arguments: "integer, integer", IdentArgs: "integer, integer", ResultType: "SETOF record",
-				Volatility: "s", IsStrict: true, IsLeakProof: true, IsSecurityDefiner: true, Config: `SET search_path TO 'pg_temp'`, Cost: 200,
-				NumRows: 200, DataAccess: "m", Language: "sql", ExecLocation: "a"}
+				Schema: "public",
+				Name: "append",
+				ReturnsSet: true,
+				FunctionBody: "SELECT ($1, $2)",
+				BinaryPath: "",
+				Arguments: "integer, integer",
+				IdentArgs: "integer, integer",
+				ResultType: "SETOF record",
+				Volatility: "s",
+				IsStrict: true,
+				IsLeakProof: true,
+				IsSecurityDefiner: true,
+				Config: `SET search_path TO 'pg_temp'`,
+				Cost: 200,
+				NumRows: 200,
+				DataAccess: "m",
+				Language: "sql",
+				ExecLocation: "a",
+			}
 
 			Expect(results).To(HaveLen(1))
 			structmatcher.ExpectStructsToMatchExcluding(&results[0], &appendFunction, "Oid")
@@ -178,15 +223,30 @@ MODIFIES SQL DATA
 			results := backup.GetFunctions(connectionPool)
 
 			appendFunction := backup.Function{
-				Schema: "public", Name: "myfunc", ReturnsSet: false, FunctionBody: `
+				Schema: "public",
+				Name: "myfunc",
+				ReturnsSet: false,
+				FunctionBody: `
 	begin
 		set work_mem = '2MB';
 		perform 1/$1;
 		return current_setting('work_mem');
 	end `,
-				BinaryPath: "", Arguments: "integer", IdentArgs: "integer", ResultType: "text",
-				Volatility: "v", IsStrict: false, IsLeakProof: false, IsSecurityDefiner: false, Config: "SET work_mem TO '1MB'", Cost: 100,
-				NumRows: 0, DataAccess: "n", Language: "plpgsql", ExecLocation: "a"}
+				BinaryPath: "",
+				Arguments: "integer",
+				IdentArgs: "integer",
+				ResultType: "text",
+				Volatility: "v",
+				IsStrict: false,
+				IsLeakProof: false,
+				IsSecurityDefiner: false,
+				Config: "SET work_mem TO '1MB'",
+				Cost: 100,
+				NumRows: 0,
+				DataAccess: "n",
+				Language: "plpgsql",
+				ExecLocation: "a",
+			}
 
 			Expect(results).To(HaveLen(1))
 			structmatcher.ExpectStructsToMatchExcluding(&results[0], &appendFunction, "Oid")
@@ -205,21 +265,38 @@ MODIFIES SQL DATA
         return current_setting('work_mem');
     end $_$;
 `)
-			defer testhelper.AssertQueryRuns(connectionPool, "DROP FUNCTION public.myfunc(integer)")
-			defer testhelper.AssertQueryRuns(connectionPool, `DROP SCHEMA "abc""def"`)
+			defer testhelper.AssertQueryRuns(connectionPool,
+				"DROP FUNCTION public.myfunc(integer)")
+			defer testhelper.AssertQueryRuns(connectionPool,
+				`DROP SCHEMA "abc""def"`)
 
 			results := backup.GetFunctions(connectionPool)
 
 			appendFunction := backup.Function{
-				Schema: "public", Name: "myfunc", ReturnsSet: false, FunctionBody: `
+				Schema: "public",
+				Name: "myfunc",
+				ReturnsSet: false,
+				FunctionBody: `
     begin
         set work_mem = '2MB';
         perform 1/$1;
         return current_setting('work_mem');
     end `,
-				BinaryPath: "", Arguments: "integer", IdentArgs: "integer", ResultType: "text",
-				Volatility: "v", IsStrict: false, IsLeakProof: false, IsSecurityDefiner: false, Config: `SET search_path TO '$user', 'public', 'abc"def'`, Cost: 100,
-				NumRows: 0, DataAccess: "n", Language: "plpgsql", ExecLocation: "a"}
+				BinaryPath: "",
+				Arguments: "integer",
+				IdentArgs: "integer",
+				ResultType: "text",
+				Volatility: "v",
+				IsStrict: false,
+				IsLeakProof: false,
+				IsSecurityDefiner: false,
+				Config: `SET search_path TO '$user', 'public', 'abc"def'`,
+				Cost: 100,
+				NumRows: 0,
+				DataAccess: "n",
+				Language: "plpgsql",
+				ExecLocation: "a",
+			}
 
 			Expect(results).To(HaveLen(1))
 			structmatcher.ExpectStructsToMatchExcluding(&results[0], &appendFunction, "Oid")

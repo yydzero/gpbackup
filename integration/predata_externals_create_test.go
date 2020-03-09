@@ -22,10 +22,24 @@ var _ = Describe("backup integration create statement tests", func() {
 			testTable backup.Table
 		)
 		BeforeEach(func() {
-			extTable = backup.ExternalTableDefinition{Oid: 0, Type: 0, Protocol: backup.FILE, Location: "file://tmp/ext_table_file",
-				ExecLocation: "ALL_SEGMENTS", FormatType: "t", FormatOpts: "delimiter '	' null '\\N' escape '\\'",
-				Options: "", Command: "", RejectLimit: 0, RejectLimitType: "", ErrTableName: "", ErrTableSchema: "", Encoding: "UTF8",
-				Writable: false, URIs: []string{"file://tmp/ext_table_file"}}
+			extTable = backup.ExternalTableDefinition{
+				Oid: 0,
+				Type: 0,
+				Protocol: backup.FILE,
+				Location: "file://tmp/ext_table_file",
+				ExecLocation: "ALL_SEGMENTS",
+				FormatType: "t",
+				FormatOpts: "delimiter '	' null '\\N' escape '\\'",
+				Options: "",
+				Command: "",
+				RejectLimit: 0,
+				RejectLimitType: "",
+				ErrTableName: "",
+				ErrTableSchema: "",
+				Encoding: "UTF8",
+				Writable: false,
+				URIs: []string{"file://tmp/ext_table_file"},
+			}
 			testTable = backup.Table{
 				Relation:        backup.Relation{Schema: "public", Name: "testtable"},
 				TableDefinition: backup.TableDefinition{IsExternal: true},
@@ -34,9 +48,12 @@ var _ = Describe("backup integration create statement tests", func() {
 		})
 		AfterEach(func() {
 			_ = os.Remove("/tmp/ext_table_file")
-			testhelper.AssertQueryRuns(connectionPool, "DROP EXTERNAL TABLE public.testtable")
-			testhelper.AssertQueryRuns(connectionPool, "DROP TABLE IF EXISTS public.err_table")
-			testhelper.AssertQueryRuns(connectionPool, `DROP TABLE IF EXISTS public."err_table%percent"`)
+			testhelper.AssertQueryRuns(connectionPool,
+				"DROP EXTERNAL TABLE public.testtable")
+			testhelper.AssertQueryRuns(connectionPool,
+				"DROP TABLE IF EXISTS public.err_table")
+			testhelper.AssertQueryRuns(connectionPool,
+				`DROP TABLE IF EXISTS public."err_table%percent"`)
 		})
 		It("creates a READABLE EXTERNAL table", func() {
 			extTable.Type = backup.READABLE
@@ -51,7 +68,8 @@ var _ = Describe("backup integration create statement tests", func() {
 
 			testhelper.AssertQueryRuns(connectionPool, buffer.String())
 
-			oid := testutils.OidFromObjectName(connectionPool, "public", "testtable", backup.TYPE_RELATION)
+			oid := testutils.OidFromObjectName(connectionPool,
+				"public", "testtable", backup.TYPE_RELATION)
 			resultTableDefs := backup.GetExternalTableDefinitions(connectionPool)
 			resultTableDef := resultTableDefs[oid]
 			resultTableDef.Type, resultTableDef.Protocol = resultTableDef.GetTableCharacteristics()
@@ -71,7 +89,8 @@ var _ = Describe("backup integration create statement tests", func() {
 
 			testhelper.AssertQueryRuns(connectionPool, buffer.String())
 
-			oid := testutils.OidFromObjectName(connectionPool, "public", "testtable", backup.TYPE_RELATION)
+			oid := testutils.OidFromObjectName(connectionPool,
+				"public", "testtable", backup.TYPE_RELATION)
 			resultTableDefs := backup.GetExternalTableDefinitions(connectionPool)
 			resultTableDef := resultTableDefs[oid]
 			resultTableDef.Type, resultTableDef.Protocol = resultTableDef.GetTableCharacteristics()
@@ -89,7 +108,8 @@ var _ = Describe("backup integration create statement tests", func() {
 
 			testhelper.AssertQueryRuns(connectionPool, buffer.String())
 
-			oid := testutils.OidFromObjectName(connectionPool, "public", "testtable", backup.TYPE_RELATION)
+			oid := testutils.OidFromObjectName(connectionPool, "public",
+				"testtable", backup.TYPE_RELATION)
 			resultTableDefs := backup.GetExternalTableDefinitions(connectionPool)
 			resultTableDef := resultTableDefs[oid]
 			resultTableDef.Type, resultTableDef.Protocol = resultTableDef.GetTableCharacteristics()
@@ -107,7 +127,8 @@ var _ = Describe("backup integration create statement tests", func() {
 
 			testhelper.AssertQueryRuns(connectionPool, buffer.String())
 
-			oid := testutils.OidFromObjectName(connectionPool, "public", "testtable", backup.TYPE_RELATION)
+			oid := testutils.OidFromObjectName(connectionPool,
+				"public", "testtable", backup.TYPE_RELATION)
 			resultTableDefs := backup.GetExternalTableDefinitions(connectionPool)
 			resultTableDef := resultTableDefs[oid]
 			resultTableDef.Type, resultTableDef.Protocol = resultTableDef.GetTableCharacteristics()
@@ -128,7 +149,8 @@ var _ = Describe("backup integration create statement tests", func() {
 
 			testhelper.AssertQueryRuns(connectionPool, buffer.String())
 
-			oid := testutils.OidFromObjectName(connectionPool, "public", "testtable", backup.TYPE_RELATION)
+			oid := testutils.OidFromObjectName(connectionPool,
+				"public", "testtable", backup.TYPE_RELATION)
 			resultTableDefs := backup.GetExternalTableDefinitions(connectionPool)
 			resultTableDef := resultTableDefs[oid]
 			resultTableDef.Type, resultTableDef.Protocol = resultTableDef.GetTableCharacteristics()
@@ -146,7 +168,8 @@ var _ = Describe("backup integration create statement tests", func() {
 
 			testhelper.AssertQueryRuns(connectionPool, buffer.String())
 
-			oid := testutils.OidFromObjectName(connectionPool, "public", "testtable", backup.TYPE_RELATION)
+			oid := testutils.OidFromObjectName(connectionPool, "public",
+				"testtable", backup.TYPE_RELATION)
 			resultTableDefs := backup.GetExternalTableDefinitions(connectionPool)
 			resultTableDef := resultTableDefs[oid]
 			resultTableDef.Type, resultTableDef.Protocol = resultTableDef.GetTableCharacteristics()
@@ -165,7 +188,8 @@ var _ = Describe("backup integration create statement tests", func() {
 
 			testhelper.AssertQueryRuns(connectionPool, buffer.String())
 
-			oid := testutils.OidFromObjectName(connectionPool, "public", "testtable", backup.TYPE_RELATION)
+			oid := testutils.OidFromObjectName(connectionPool,
+				"public", "testtable", backup.TYPE_RELATION)
 			resultTableDefs := backup.GetExternalTableDefinitions(connectionPool)
 			resultTableDef := resultTableDefs[oid]
 			resultTableDef.Type, resultTableDef.Protocol = resultTableDef.GetTableCharacteristics()
@@ -174,9 +198,33 @@ var _ = Describe("backup integration create statement tests", func() {
 		})
 	})
 	Describe("PrintCreateExternalProtocolStatement", func() {
-		protocolReadOnly := backup.ExternalProtocol{Oid: 1, Name: "s3_read", Owner: "testrole", Trusted: true, ReadFunction: 2, WriteFunction: 0, Validator: 0}
-		protocolWriteOnly := backup.ExternalProtocol{Oid: 1, Name: "s3_write", Owner: "testrole", Trusted: false, ReadFunction: 0, WriteFunction: 1, Validator: 0}
-		protocolReadWrite := backup.ExternalProtocol{Oid: 1, Name: "s3_read_write", Owner: "testrole", Trusted: false, ReadFunction: 2, WriteFunction: 1, Validator: 0}
+		protocolReadOnly := backup.ExternalProtocol{
+			Oid: 1,
+			Name: "s3_read",
+			Owner: "testrole",
+			Trusted: true,
+			ReadFunction: 2,
+			WriteFunction: 0,
+			Validator: 0,
+		}
+		protocolWriteOnly := backup.ExternalProtocol{
+			Oid: 1,
+			Name: "s3_write",
+			Owner: "testrole",
+			Trusted: false,
+			ReadFunction: 0,
+			WriteFunction: 1,
+			Validator: 0,
+		}
+		protocolReadWrite := backup.ExternalProtocol{
+			Oid: 1,
+			Name: "s3_read_write",
+			Owner: "testrole",
+			Trusted: false,
+			ReadFunction: 2,
+			WriteFunction: 1,
+			Validator: 0,
+		}
 		emptyMetadata := backup.ObjectMetadata{}
 		funcInfoMap := map[uint32]backup.FunctionInfo{
 			1: {QualifiedName: "public.write_to_s3", Arguments: "", IsInternal: false},
@@ -197,7 +245,8 @@ var _ = Describe("backup integration create statement tests", func() {
 			resultExternalProtocols := backup.GetExternalProtocols(connectionPool)
 
 			Expect(resultExternalProtocols).To(HaveLen(1))
-			structmatcher.ExpectStructsToMatchExcluding(&protocolReadOnly, &resultExternalProtocols[0], "Oid", "ReadFunction", "FuncMap")
+			structmatcher.ExpectStructsToMatchExcluding(&protocolReadOnly,
+				&resultExternalProtocols[0], "Oid", "ReadFunction", "FuncMap")
 		})
 		It("creates a protocol with a write function", func() {
 			backup.PrintCreateExternalProtocolStatement(backupfile, tocfile, protocolWriteOnly, funcInfoMap, emptyMetadata)
@@ -211,7 +260,8 @@ var _ = Describe("backup integration create statement tests", func() {
 			resultExternalProtocols := backup.GetExternalProtocols(connectionPool)
 
 			Expect(resultExternalProtocols).To(HaveLen(1))
-			structmatcher.ExpectStructsToMatchExcluding(&protocolWriteOnly, &resultExternalProtocols[0], "Oid", "WriteFunction", "FuncMap")
+			structmatcher.ExpectStructsToMatchExcluding(&protocolWriteOnly,
+				&resultExternalProtocols[0], "Oid", "WriteFunction", "FuncMap")
 		})
 		It("creates a protocol with a read and write function", func() {
 			backup.PrintCreateExternalProtocolStatement(backupfile, tocfile, protocolReadWrite, funcInfoMap, emptyMetadata)
@@ -233,9 +283,16 @@ var _ = Describe("backup integration create statement tests", func() {
 	})
 	Describe("PrintExchangeExternalPartitionStatements", func() {
 		tables := []backup.Table{
-			{Relation: backup.Relation{Oid: 1, Schema: "public", Name: "part_tbl_ext_part_"}},
-			{Relation: backup.Relation{Oid: 2, Schema: "public", Name: "part_tbl"}},
-		}
+			{
+				Relation: backup.Relation{
+				Oid: 1,
+				Schema: "public",
+				Name: "part_tbl_ext_part_"}},
+			{
+				Relation: backup.Relation{
+					Oid: 2,
+					Schema: "public",
+					Name: "part_tbl"}}}
 		emptyPartInfoMap := make(map[uint32]backup.PartitionInfo)
 		AfterEach(func() {
 			testhelper.AssertQueryRuns(connectionPool, "DROP TABLE public.part_tbl")
@@ -271,7 +328,8 @@ FORMAT 'csv';`)
 			resultExtPartitions, resultPartInfoMap := backup.GetExternalPartitionInfo(connectionPool)
 			Expect(resultExtPartitions).To(HaveLen(1))
 			Expect(resultPartInfoMap).To(HaveLen(3))
-			structmatcher.ExpectStructsToMatchExcluding(&externalPartition, &resultExtPartitions[0], "PartitionRuleOid", "RelationOid", "ParentRelationOid")
+			structmatcher.ExpectStructsToMatchExcluding(&externalPartition,
+				&resultExtPartitions[0], "PartitionRuleOid", "RelationOid", "ParentRelationOid")
 		})
 		It("writes an alter statement for an unnamed range partition", func() {
 			externalPartition := backup.PartitionInfo{
@@ -302,7 +360,8 @@ FORMAT 'csv';`)
 			resultExtPartitions, resultPartInfoMap := backup.GetExternalPartitionInfo(connectionPool)
 			Expect(resultExtPartitions).To(HaveLen(1))
 			Expect(resultPartInfoMap).To(HaveLen(2))
-			structmatcher.ExpectStructsToMatchExcluding(&externalPartition, &resultExtPartitions[0], "PartitionRuleOid", "RelationOid", "ParentRelationOid")
+			structmatcher.ExpectStructsToMatchExcluding(&externalPartition,
+				&resultExtPartitions[0], "PartitionRuleOid", "RelationOid", "ParentRelationOid")
 		})
 		It("writes an alter statement for a two level partition", func() {
 			testutils.SkipIfBefore5(connectionPool)
@@ -345,7 +404,8 @@ SUBPARTITION eur values ('eur'))
 `)
 
 			testhelper.AssertQueryRuns(connectionPool, `CREATE EXTERNAL TABLE public.part_tbl_ext_part_ (a int,b date,c text,d int) LOCATION ('gpfdist://127.0.0.1/apj') FORMAT 'text';`)
-			partInfoMap := map[uint32]backup.PartitionInfo{externalPartitionParent.PartitionRuleOid: externalPartitionParent}
+			partInfoMap := map[uint32]backup.PartitionInfo{
+				externalPartitionParent.PartitionRuleOid: externalPartitionParent}
 			externalPartitions := []backup.PartitionInfo{externalPartition}
 
 			backup.PrintExchangeExternalPartitionStatements(backupfile, tocfile, externalPartitions, partInfoMap, tables)
@@ -408,7 +468,9 @@ PARTITION BY RANGE (year)
 `)
 
 			testhelper.AssertQueryRuns(connectionPool, `CREATE EXTERNAL TABLE public.part_tbl_ext_part_ (like public.part_tbl_1_prt_3_2_prt_1_3_prt_europe) LOCATION ('gpfdist://127.0.0.1/apj') FORMAT 'text';`)
-			partInfoMap := map[uint32]backup.PartitionInfo{externalPartitionParent1.PartitionRuleOid: externalPartitionParent1, externalPartitionParent2.PartitionRuleOid: externalPartitionParent2}
+			partInfoMap := map[uint32]backup.PartitionInfo{
+				externalPartitionParent1.PartitionRuleOid: externalPartitionParent1,
+				externalPartitionParent2.PartitionRuleOid: externalPartitionParent2}
 			externalPartitions := []backup.PartitionInfo{externalPartition}
 
 			backup.PrintExchangeExternalPartitionStatements(backupfile, tocfile, externalPartitions, partInfoMap, tables)

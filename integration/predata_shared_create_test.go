@@ -21,7 +21,8 @@ var _ = Describe("backup integration create statement tests", func() {
 		})
 		It("creates a non public schema", func() {
 			schemas := []backup.Schema{{Oid: 0, Name: "test_schema"}}
-			schemaMetadata := testutils.DefaultMetadataMap("SCHEMA", true, true, true, includeSecurityLabels)
+			schemaMetadata := testutils.DefaultMetadataMap("SCHEMA",
+				true, true, true, includeSecurityLabels)
 
 			backup.PrintCreateSchemaStatements(backupfile, tocfile, schemas, schemaMetadata)
 
@@ -38,7 +39,8 @@ var _ = Describe("backup integration create statement tests", func() {
 
 		It("modifies the public schema", func() {
 			schemas := []backup.Schema{{Oid: 2200, Name: "public"}}
-			schemaMetadata := testutils.DefaultMetadataMap("SCHEMA", true, true, true, includeSecurityLabels)
+			schemaMetadata := testutils.DefaultMetadataMap("SCHEMA",
+				true, true, true, includeSecurityLabels)
 
 			backup.PrintCreateSchemaStatements(backupfile, tocfile, schemas, schemaMetadata)
 
@@ -149,7 +151,15 @@ var _ = Describe("backup integration create statement tests", func() {
 		It("doesn't create a check constraint on a domain", func() {
 			testhelper.AssertQueryRuns(connectionPool, "CREATE DOMAIN public.domain1 AS numeric")
 			defer testhelper.AssertQueryRuns(connectionPool, "DROP DOMAIN public.domain1")
-			domainCheckConstraint := backup.Constraint{Oid: 0, Name: "check1", ConType: "c", ConDef: "CHECK (VALUE <> 42::numeric)", OwningObject: "public.domain1", IsDomainConstraint: true, IsPartitionParent: false}
+			domainCheckConstraint := backup.Constraint{
+				Oid: 0,
+				Name: "check1",
+				ConType: "c",
+				ConDef: "CHECK (VALUE <> 42::numeric)",
+				OwningObject: "public.domain1",
+				IsDomainConstraint: true,
+				IsPartitionParent: false,
+			}
 			constraints := []backup.Constraint{domainCheckConstraint}
 			backup.PrintConstraintStatements(backupfile, tocfile, constraints, conMetadataMap)
 

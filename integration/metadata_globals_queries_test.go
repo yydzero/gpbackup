@@ -66,17 +66,20 @@ var _ = Describe("backup integration tests", func() {
 		It("returns a database info struct for a basic database", func() {
 			result := backup.GetDatabaseInfo(connectionPool)
 
-			testdbExpected := backup.Database{Oid: 0, Name: "testdb", Tablespace: "pg_default", Encoding: "UTF8"}
+			testdbExpected := backup.Database{
+				Oid: 0, Name: "testdb", Tablespace: "pg_default", Encoding: "UTF8"}
 			structmatcher.ExpectStructsToMatchExcluding(&testdbExpected, &result, "Oid", "Collate", "CType")
 		})
 		It("returns a database info struct for a complex database", func() {
 			var expectedDB backup.Database
 			if connectionPool.Version.Before("6") {
 				testhelper.AssertQueryRuns(connectionPool, "CREATE DATABASE create_test_db ENCODING 'UTF8' TEMPLATE template0")
-				expectedDB = backup.Database{Oid: 1, Name: "create_test_db", Tablespace: "pg_default", Encoding: "UTF8", Collate: "", CType: ""}
+				expectedDB = backup.Database{
+					Oid: 1, Name: "create_test_db", Tablespace: "pg_default", Encoding: "UTF8", Collate: "", CType: ""}
 			} else {
 				testhelper.AssertQueryRuns(connectionPool, "CREATE DATABASE create_test_db ENCODING 'UTF8' LC_COLLATE 'en_US.utf-8' LC_CTYPE 'en_US.utf-8' TEMPLATE template0")
-				expectedDB = backup.Database{Oid: 1, Name: "create_test_db", Tablespace: "pg_default", Encoding: "UTF8", Collate: "en_US.utf-8", CType: "en_US.utf-8"}
+				expectedDB = backup.Database{
+					Oid: 1, Name: "create_test_db", Tablespace: "pg_default", Encoding: "UTF8", Collate: "en_US.utf-8", CType: "en_US.utf-8"}
 			}
 			defer testhelper.AssertQueryRuns(connectionPool, "DROP DATABASE create_test_db")
 
@@ -87,24 +90,38 @@ var _ = Describe("backup integration tests", func() {
 			structmatcher.ExpectStructsToMatchExcluding(&expectedDB, &result, "Oid")
 		})
 		It("returns a database info struct if database contains single quote", func() {
-			testhelper.AssertQueryRuns(connectionPool, `CREATE DATABASE "test'db"`)
-			defer testhelper.AssertQueryRuns(connectionPool, `DROP DATABASE "test'db"`)
+			testhelper.AssertQueryRuns(connectionPool,
+				`CREATE DATABASE "test'db"`)
+			defer testhelper.AssertQueryRuns(connectionPool,
+				`DROP DATABASE "test'db"`)
 			connectionPool.DBName = `test'db`
 			result := backup.GetDatabaseInfo(connectionPool)
 			connectionPool.DBName = `testdb`
 
-			testdbExpected := backup.Database{Oid: 0, Name: `"test'db"`, Tablespace: "pg_default", Encoding: "UTF8"}
+			testdbExpected := backup.Database{
+				Oid: 0, Name: `"test'db"`, Tablespace: "pg_default", Encoding: "UTF8"}
 			structmatcher.ExpectStructsToMatchExcluding(&testdbExpected, &result, "Oid", "Collate", "CType")
 		})
 	})
 	Describe("GetResourceQueues", func() {
 		It("returns a slice for a resource queue with only ACTIVE_STATEMENTS", func() {
-			testhelper.AssertQueryRuns(connectionPool, `CREATE RESOURCE QUEUE "statementsQueue" WITH (ACTIVE_STATEMENTS=7);`)
-			defer testhelper.AssertQueryRuns(connectionPool, `DROP RESOURCE QUEUE "statementsQueue"`)
+			testhelper.AssertQueryRuns(connectionPool,
+				`CREATE RESOURCE QUEUE "statementsQueue" WITH (ACTIVE_STATEMENTS=7);`)
+			defer testhelper.AssertQueryRuns(connectionPool,
+				`DROP RESOURCE QUEUE "statementsQueue"`)
 
 			results := backup.GetResourceQueues(connectionPool)
 
-			statementsQueue := backup.ResourceQueue{Oid: 1, Name: `"statementsQueue"`, ActiveStatements: 7, MaxCost: "-1.00", CostOvercommit: false, MinCost: "0.00", Priority: "medium", MemoryLimit: "-1"}
+			statementsQueue := backup.ResourceQueue{
+				Oid: 1,
+				Name: `"statementsQueue"`,
+				ActiveStatements: 7,
+				MaxCost: "-1.00",
+				CostOvercommit: false,
+				MinCost: "0.00",
+				Priority: "medium",
+				MemoryLimit: "-1",
+			}
 
 			//Since resource queues are global, we can't be sure this is the only one
 			for _, resultQueue := range results {
@@ -121,7 +138,16 @@ var _ = Describe("backup integration tests", func() {
 
 			results := backup.GetResourceQueues(connectionPool)
 
-			maxCostQueue := backup.ResourceQueue{Oid: 1, Name: `"maxCostQueue"`, ActiveStatements: -1, MaxCost: "32.80", CostOvercommit: false, MinCost: "0.00", Priority: "medium", MemoryLimit: "-1"}
+			maxCostQueue := backup.ResourceQueue{
+				Oid: 1,
+				Name: `"maxCostQueue"`,
+				ActiveStatements: -1,
+				MaxCost: "32.80",
+				CostOvercommit: false,
+				MinCost: "0.00",
+				Priority: "medium",
+				MemoryLimit: "-1",
+			}
 
 			for _, resultQueue := range results {
 				if resultQueue.Name == `"maxCostQueue"` {
@@ -137,7 +163,8 @@ var _ = Describe("backup integration tests", func() {
 
 			results := backup.GetResourceQueues(connectionPool)
 
-			everyQueue := backup.ResourceQueue{Oid: 1, Name: `"everyQueue"`, ActiveStatements: 7, MaxCost: "30000.00", CostOvercommit: true, MinCost: "22.53", Priority: "low", MemoryLimit: "2GB"}
+			everyQueue := backup.ResourceQueue{
+				Oid: 1, Name: `"everyQueue"`, ActiveStatements: 7, MaxCost: "30000.00", CostOvercommit: true, MinCost: "22.53", Priority: "low", MemoryLimit: "2GB"}
 
 			for _, resultQueue := range results {
 				if resultQueue.Name == `"everyQueue"` {
@@ -159,7 +186,8 @@ var _ = Describe("backup integration tests", func() {
 
 			results := backup.GetResourceGroups(connectionPool)
 
-			someGroup := backup.ResourceGroup{Oid: 1, Name: `"someGroup"`, CPURateLimit: "10", MemoryLimit: "20", Concurrency: "15", MemorySharedQuota: "25", MemorySpillRatio: "30", MemoryAuditor: "0", Cpuset: "-1"}
+			someGroup := backup.ResourceGroup{
+				Oid: 1, Name: `"someGroup"`, CPURateLimit: "10", MemoryLimit: "20", Concurrency: "15", MemorySharedQuota: "25", MemorySpillRatio: "30", MemoryAuditor: "0", Cpuset: "-1"}
 
 			for _, resultGroup := range results {
 				if resultGroup.Name == `"someGroup"` {
@@ -175,7 +203,17 @@ var _ = Describe("backup integration tests", func() {
 
 			results := backup.GetResourceGroups(connectionPool)
 
-			someGroup := backup.ResourceGroup{Oid: 1, Name: `"someGroup"`, CPURateLimit: "10", MemoryLimit: "20", Concurrency: "0", MemorySharedQuota: "25", MemorySpillRatio: "30", MemoryAuditor: "0", Cpuset: "-1"}
+			someGroup := backup.ResourceGroup{
+				Oid: 1,
+				Name: `"someGroup"`,
+				CPURateLimit: "10",
+				MemoryLimit: "20",
+				Concurrency: "0",
+				MemorySharedQuota: "25",
+				MemorySpillRatio: "30",
+				MemoryAuditor: "0",
+				Cpuset: "-1",
+			}
 
 			for _, resultGroup := range results {
 				if resultGroup.Name == `"someGroup"` {
@@ -186,12 +224,23 @@ var _ = Describe("backup integration tests", func() {
 			Fail("Resource group 'someGroup' was not found.")
 		})
 		It("returns a resource group with defaults", func() {
-			testhelper.AssertQueryRuns(connectionPool, `CREATE RESOURCE GROUP "someGroup" WITH (CPU_RATE_LIMIT=10, MEMORY_LIMIT=20);`)
-			defer testhelper.AssertQueryRuns(connectionPool, `DROP RESOURCE GROUP "someGroup"`)
+			testhelper.AssertQueryRuns(connectionPool,
+				`CREATE RESOURCE GROUP "someGroup" WITH (CPU_RATE_LIMIT=10, MEMORY_LIMIT=20);`)
+			defer testhelper.AssertQueryRuns(connectionPool,
+				`DROP RESOURCE GROUP "someGroup"`)
 
 			results := backup.GetResourceGroups(connectionPool)
-
-			expectedDefaults := backup.ResourceGroup{Oid: 1, Name: `"someGroup"`, CPURateLimit: "10", MemoryLimit: "20", Concurrency: concurrencyDefault, MemorySharedQuota: memSharedDefault, MemorySpillRatio: memSpillDefault, MemoryAuditor: memAuditDefault, Cpuset: cpuSetDefault}
+			expectedDefaults := backup.ResourceGroup{
+				Oid: 1,
+				Name: `"someGroup"`,
+				CPURateLimit: "10",
+				MemoryLimit: "20",
+				Concurrency: concurrencyDefault,
+				MemorySharedQuota: memSharedDefault,
+				MemorySpillRatio: memSpillDefault,
+				MemoryAuditor: memAuditDefault,
+				Cpuset: cpuSetDefault,
+			}
 
 			for _, resultGroup := range results {
 				if resultGroup.Name == `"someGroup"` {
@@ -209,7 +258,8 @@ var _ = Describe("backup integration tests", func() {
 
 			results := backup.GetRoles(connectionPool)
 
-			roleOid := testutils.OidFromObjectName(connectionPool, "", "role1", backup.TYPE_ROLE)
+			roleOid := testutils.OidFromObjectName(connectionPool,
+				"", "role1", backup.TYPE_ROLE)
 			expectedRole := backup.Role{
 				Oid:             roleOid,
 				Name:            "role1",
@@ -257,9 +307,12 @@ CREATEEXTTABLE (protocol='gphdfs', type='readable')
 CREATEEXTTABLE (protocol='gphdfs', type='writable')`
 			}
 			testhelper.AssertQueryRuns(connectionPool, setupQuery)
-			testhelper.AssertQueryRuns(connectionPool, "ALTER ROLE role1 DENY BETWEEN DAY 'Sunday' TIME '1:30 PM' AND DAY 'Wednesday' TIME '14:30:00'")
-			testhelper.AssertQueryRuns(connectionPool, "ALTER ROLE role1 DENY DAY 'Friday'")
-			testhelper.AssertQueryRuns(connectionPool, "COMMENT ON ROLE role1 IS 'this is a role comment'")
+			testhelper.AssertQueryRuns(connectionPool,
+				"ALTER ROLE role1 DENY BETWEEN DAY 'Sunday' TIME '1:30 PM' AND DAY 'Wednesday' TIME '14:30:00'")
+			testhelper.AssertQueryRuns(connectionPool,
+				"ALTER ROLE role1 DENY DAY 'Friday'")
+			testhelper.AssertQueryRuns(connectionPool,
+				"COMMENT ON ROLE role1 IS 'this is a role comment'")
 
 			results := backup.GetRoles(connectionPool)
 
@@ -317,13 +370,14 @@ CREATEEXTTABLE (protocol='gphdfs', type='writable')`
 		})
 		It("returns a role with replication", func() {
 			testutils.SkipIfBefore6(connectionPool)
-
-			testhelper.AssertQueryRuns(connectionPool, "CREATE ROLE role1 WITH SUPERUSER NOINHERIT REPLICATION")
-			defer testhelper.AssertQueryRuns(connectionPool, "DROP ROLE role1")
-
+			testhelper.AssertQueryRuns(connectionPool,
+				"CREATE ROLE role1 WITH SUPERUSER NOINHERIT REPLICATION")
+			defer testhelper.AssertQueryRuns(connectionPool,
+				"DROP ROLE role1")
 			results := backup.GetRoles(connectionPool)
 
-			roleOid := testutils.OidFromObjectName(connectionPool, "", "role1", backup.TYPE_ROLE)
+			roleOid := testutils.OidFromObjectName(connectionPool,
+				"", "role1", backup.TYPE_ROLE)
 			expectedRole := backup.Role{
 				Oid:             roleOid,
 				Name:            "role1",
@@ -408,10 +462,12 @@ CREATEEXTTABLE (protocol='gphdfs', type='writable')`
 			var foundRoles int
 			for _, role := range results {
 				if role.Name == "role1inf" {
-					structmatcher.ExpectStructsToMatchExcluding(&expectedRoleInf, role, "Oid", "ResGroup")
+					structmatcher.ExpectStructsToMatchExcluding(&expectedRoleInf,
+						role, "Oid", "ResGroup")
 					foundRoles++
 				} else if role.Name == "role1neginf" {
-					structmatcher.ExpectStructsToMatchExcluding(&expectedRoleNegInf, role, "Oid", "ResGroup")
+					structmatcher.ExpectStructsToMatchExcluding(&expectedRoleNegInf,
+						role, "Oid", "ResGroup")
 					foundRoles++
 				}
 			}
@@ -431,7 +487,8 @@ CREATEEXTTABLE (protocol='gphdfs', type='writable')`
 		})
 		It("returns a role without ADMIN OPTION", func() {
 			testhelper.AssertQueryRuns(connectionPool, "GRANT usergroup TO testuser")
-			expectedRoleMember := backup.RoleMember{Role: "usergroup", Member: "testuser", Grantor: "testrole", IsAdmin: false}
+			expectedRoleMember := backup.RoleMember{
+				Role: "usergroup", Member: "testuser", Grantor: "testrole", IsAdmin: false}
 
 			roleMembers := backup.GetRoleMembers(connectionPool)
 
@@ -444,8 +501,10 @@ CREATEEXTTABLE (protocol='gphdfs', type='writable')`
 			Fail("Role 'testuser' is not a member of role 'usergroup'")
 		})
 		It("returns a role WITH ADMIN OPTION", func() {
-			testhelper.AssertQueryRuns(connectionPool, "GRANT usergroup TO testuser WITH ADMIN OPTION GRANTED BY testrole")
-			expectedRoleMember := backup.RoleMember{Role: "usergroup", Member: "testuser", Grantor: "testrole", IsAdmin: true}
+			testhelper.AssertQueryRuns(connectionPool,
+				"GRANT usergroup TO testuser WITH ADMIN OPTION GRANTED BY testrole")
+			expectedRoleMember := backup.RoleMember{
+				Role: "usergroup", Member: "testuser", Grantor: "testrole", IsAdmin: true}
 
 			roleMembers := backup.GetRoleMembers(connectionPool)
 
@@ -496,11 +555,16 @@ CREATEEXTTABLE (protocol='gphdfs', type='writable')`
 	})
 	Describe("GetRoleGUCs", func() {
 		It("returns a slice of values for user level GUCs", func() {
-			testhelper.AssertQueryRuns(connectionPool, "CREATE ROLE role1 SUPERUSER NOINHERIT")
-			defer testhelper.AssertQueryRuns(connectionPool, "DROP ROLE role1")
-			testhelper.AssertQueryRuns(connectionPool, "ALTER ROLE role1 SET search_path TO public")
-			testhelper.AssertQueryRuns(connectionPool, "ALTER ROLE role1 SET client_min_messages TO 'info'")
-			testhelper.AssertQueryRuns(connectionPool, "ALTER ROLE role1 SET gp_default_storage_options TO 'appendonly=true, compresslevel=6, orientation=row, compresstype=none'")
+			testhelper.AssertQueryRuns(connectionPool,
+				"CREATE ROLE role1 SUPERUSER NOINHERIT")
+			defer testhelper.AssertQueryRuns(connectionPool,
+				"DROP ROLE role1")
+			testhelper.AssertQueryRuns(connectionPool,
+				"ALTER ROLE role1 SET search_path TO public")
+			testhelper.AssertQueryRuns(connectionPool,
+				"ALTER ROLE role1 SET client_min_messages TO 'info'")
+			testhelper.AssertQueryRuns(connectionPool,
+				"ALTER ROLE role1 SET gp_default_storage_options TO 'appendonly=true, compresslevel=6, orientation=row, compresstype=none'")
 
 			results := backup.GetRoleGUCs(connectionPool)
 			roleConfig := results["role1"]
@@ -536,11 +600,14 @@ CREATEEXTTABLE (protocol='gphdfs', type='writable')`
 		It("returns a tablespace", func() {
 			var expectedTablespace backup.Tablespace
 			if connectionPool.Version.Before("6") {
-				testhelper.AssertQueryRuns(connectionPool, "CREATE TABLESPACE test_tablespace FILESPACE test_dir")
-				expectedTablespace = backup.Tablespace{Oid: 0, Tablespace: "test_tablespace", FileLocation: "test_dir"}
+				testhelper.AssertQueryRuns(connectionPool,
+					"CREATE TABLESPACE test_tablespace FILESPACE test_dir")
+				expectedTablespace = backup.Tablespace{
+					Oid: 0, Tablespace: "test_tablespace", FileLocation: "test_dir"}
 			} else {
 				testhelper.AssertQueryRuns(connectionPool, "CREATE TABLESPACE test_tablespace LOCATION '/tmp/test_dir'")
-				expectedTablespace = backup.Tablespace{Oid: 0, Tablespace: "test_tablespace", FileLocation: "'/tmp/test_dir'", SegmentLocations: []string{}}
+				expectedTablespace = backup.Tablespace{
+					Oid: 0, Tablespace: "test_tablespace", FileLocation: "'/tmp/test_dir'", SegmentLocations: []string{}}
 			}
 			defer testhelper.AssertQueryRuns(connectionPool, "DROP TABLESPACE test_tablespace")
 
@@ -559,9 +626,11 @@ CREATEEXTTABLE (protocol='gphdfs', type='writable')`
 
 			testhelper.AssertQueryRuns(connectionPool, "CREATE TABLESPACE test_tablespace LOCATION '/tmp/test_dir' WITH (content0='/tmp/test_dir1', seq_page_cost=123)")
 			expectedTablespace := backup.Tablespace{
-				Oid: 0, Tablespace: "test_tablespace", FileLocation: "'/tmp/test_dir'",
+				Oid: 0,
+				Tablespace: "test_tablespace",
+				FileLocation: "'/tmp/test_dir'",
 				SegmentLocations: []string{"content0='/tmp/test_dir1'"},
-				Options:          "seq_page_cost=123",
+				Options: "seq_page_cost=123",
 			}
 
 			defer testhelper.AssertQueryRuns(connectionPool, "DROP TABLESPACE test_tablespace")
