@@ -103,7 +103,11 @@ var _ = Describe("backup/queries_acl tests", func() {
 				{Grantee: "gpadmin", Insert: true},
 				{Grantee: "testrole", Insert: true},
 			}, Owner: "testrole"}
-			expectedTwo := backup.ObjectMetadata{Privileges: []backup.ACL{}, Owner: "testrole", Comment: "This is a metadata comment."}
+			expectedTwo := backup.ObjectMetadata{
+				Privileges: []backup.ACL{},
+				Owner: "testrole",
+				Comment: "This is a metadata comment.",
+			}
 			resultOne := resultMetadataMap[backup.UniqueID{Oid: 1}]
 			resultTwo := resultMetadataMap[backup.UniqueID{Oid: 2}]
 			Expect(resultMetadataMap).To(HaveLen(2))
@@ -117,7 +121,11 @@ var _ = Describe("backup/queries_acl tests", func() {
 		emptyRows := sqlmock.NewRows(header)
 
 		BeforeEach(func() {
-			params = backup.MetadataQueryParams{NameField: "name", OidField: "oid", CatalogTable: "table"}
+			params = backup.MetadataQueryParams{
+				NameField: "name",
+				OidField: "oid",
+				CatalogTable: "table",
+			}
 		})
 		It("returns comment for object with default params", func() {
 			mock.ExpectQuery(regexp.QuoteMeta(`
@@ -152,8 +160,14 @@ var _ = Describe("backup/queries_acl tests", func() {
 			mock.ExpectQuery(`SELECT (.*)`).WillReturnRows(fakeRows)
 			resultMetadataMap := backup.GetCommentsForObjectType(connectionPool, params)
 
-			expectedOne := backup.ObjectMetadata{Privileges: []backup.ACL{}, Comment: "This is a metadata comment."}
-			expectedTwo := backup.ObjectMetadata{Privileges: []backup.ACL{}, Comment: "This is also a metadata comment."}
+			expectedOne := backup.ObjectMetadata{
+				Privileges: []backup.ACL{},
+				Comment: "This is a metadata comment.",
+			}
+			expectedTwo := backup.ObjectMetadata{
+				Privileges: []backup.ACL{},
+				Comment: "This is also a metadata comment.",
+			}
 			resultOne := resultMetadataMap[backup.UniqueID{Oid: 1}]
 			resultTwo := resultMetadataMap[backup.UniqueID{Oid: 2}]
 			Expect(resultMetadataMap).To(HaveLen(2))

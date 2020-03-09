@@ -28,19 +28,24 @@ var _ = Describe("backup/metadata_globals tests", func() {
 			db := backup.Database{Oid: 1, Name: "testdb", Tablespace: "pg_default"}
 			emptyMetadataMap := backup.MetadataMap{}
 			backup.PrintCreateDatabaseStatement(backupfile, tocfile, emptyDB, db, emptyMetadataMap)
-			testutils.ExpectEntry(tocfile.GlobalEntries, 0, "", "", "testdb", "DATABASE")
-			testutils.AssertBufferContents(tocfile.GlobalEntries, buffer, `CREATE DATABASE testdb TEMPLATE template0;`)
+			testutils.ExpectEntry(tocfile.GlobalEntries, 0, "",
+				"", "testdb", "DATABASE")
+			testutils.AssertBufferContents(tocfile.GlobalEntries, buffer,
+				`CREATE DATABASE testdb TEMPLATE template0;`)
 		})
 		It("prints a CREATE DATABASE statement for a reserved keyword named database", func() {
 			db := backup.Database{Oid: 1, Name: `"table"`, Tablespace: "pg_default"}
 			emptyMetadataMap := backup.MetadataMap{}
 			backup.PrintCreateDatabaseStatement(backupfile, tocfile, emptyDB, db, emptyMetadataMap)
-			testutils.ExpectEntry(tocfile.GlobalEntries, 0, "", "", `"table"`, "DATABASE")
-			testutils.AssertBufferContents(tocfile.GlobalEntries, buffer, `CREATE DATABASE "table" TEMPLATE template0;`)
+			testutils.ExpectEntry(tocfile.GlobalEntries, 0, "",
+				"", `"table"`, "DATABASE")
+			testutils.AssertBufferContents(tocfile.GlobalEntries, buffer,
+				`CREATE DATABASE "table" TEMPLATE template0;`)
 		})
 		It("prints a CREATE DATABASE statement with privileges, an owner, security label, and a comment", func() {
 			db := backup.Database{Oid: 1, Name: "testdb", Tablespace: "pg_default"}
-			dbMetadataMap := testutils.DefaultMetadataMap("DATABASE", true, true, true, true)
+			dbMetadataMap := testutils.DefaultMetadataMap("DATABASE",
+				true, true, true, true)
 			dbMetadata := dbMetadataMap[db.GetUniqueID()]
 			dbMetadata.Privileges[0].Create = false
 			dbMetadataMap[db.GetUniqueID()] = dbMetadata
@@ -56,17 +61,40 @@ GRANT TEMPORARY,CONNECT ON DATABASE testdb TO testrole;`,
 			testutils.AssertBufferContents(tocfile.GlobalEntries, buffer, expectedStatements...)
 		})
 		It("prints a CREATE DATABASE statement with all modifiers", func() {
-			db := backup.Database{Oid: 1, Name: "testdb", Tablespace: "test_tablespace", Encoding: "UTF8", Collate: "en_US.utf-8", CType: "en_US.utf-8"}
+			db := backup.Database{
+				Oid: 1,
+				Name: "testdb",
+				Tablespace: "test_tablespace",
+				Encoding: "UTF8",
+				Collate: "en_US.utf-8",
+				CType: "en_US.utf-8",
+			}
 			emptyMetadataMap := backup.MetadataMap{}
 			backup.PrintCreateDatabaseStatement(backupfile, tocfile, emptyDB, db, emptyMetadataMap)
-			testutils.AssertBufferContents(tocfile.GlobalEntries, buffer, `CREATE DATABASE testdb TEMPLATE template0 TABLESPACE test_tablespace ENCODING 'UTF8' LC_COLLATE 'en_US.utf-8' LC_CTYPE 'en_US.utf-8';`)
+			testutils.AssertBufferContents(tocfile.GlobalEntries, buffer,
+				`CREATE DATABASE testdb TEMPLATE template0 TABLESPACE test_tablespace ENCODING 'UTF8' LC_COLLATE 'en_US.utf-8' LC_CTYPE 'en_US.utf-8';`)
 		})
 		It("does not print encoding information if it is the same as defaults", func() {
-			defaultDB := backup.Database{Oid: 0, Name: "", Tablespace: "", Encoding: "UTF8", Collate: "en_US.utf-8", CType: "en_US.utf-8"}
-			db := backup.Database{Oid: 1, Name: "testdb", Tablespace: "test_tablespace", Encoding: "UTF8", Collate: "en_US.utf-8", CType: "en_US.utf-8"}
+			defaultDB := backup.Database{
+				Oid: 0,
+				Name: "",
+				Tablespace: "",
+				Encoding: "UTF8",
+				Collate: "en_US.utf-8",
+				CType: "en_US.utf-8",
+			}
+			db := backup.Database{
+				Oid: 1,
+				Name: "testdb",
+				Tablespace: "test_tablespace",
+				Encoding: "UTF8",
+				Collate: "en_US.utf-8",
+				CType: "en_US.utf-8",
+			}
 			emptyMetadataMap := backup.MetadataMap{}
 			backup.PrintCreateDatabaseStatement(backupfile, tocfile, defaultDB, db, emptyMetadataMap)
-			testutils.AssertBufferContents(tocfile.GlobalEntries, buffer, `CREATE DATABASE testdb TEMPLATE template0 TABLESPACE test_tablespace;`)
+			testutils.AssertBufferContents(tocfile.GlobalEntries, buffer,
+				`CREATE DATABASE testdb TEMPLATE template0 TABLESPACE test_tablespace;`)
 		})
 	})
 	Describe("PrintDatabaseGUCs", func() {
@@ -79,8 +107,10 @@ GRANT TEMPORARY,CONNECT ON DATABASE testdb TO testrole;`,
 			gucs := []string{defaultOidGUC}
 
 			backup.PrintDatabaseGUCs(backupfile, tocfile, gucs, dbname)
-			testutils.ExpectEntry(tocfile.GlobalEntries, 0, "", "", "testdb", "DATABASE GUC")
-			testutils.AssertBufferContents(tocfile.GlobalEntries, buffer, `ALTER DATABASE testdb SET default_with_oids TO 'true';`)
+			testutils.ExpectEntry(tocfile.GlobalEntries, 0, "",
+				"", "testdb", "DATABASE GUC")
+			testutils.AssertBufferContents(tocfile.GlobalEntries, buffer,
+				`ALTER DATABASE testdb SET default_with_oids TO 'true';`)
 		})
 		It("prints multiple database GUCs", func() {
 			gucs := []string{defaultOidGUC, searchPathGUC, defaultStorageGUC}
@@ -95,67 +125,153 @@ GRANT TEMPORARY,CONNECT ON DATABASE testdb TO testrole;`,
 	Describe("PrintCreateResourceQueueStatements", func() {
 		var emptyResQueueMetadata = backup.MetadataMap{}
 		It("prints resource queues", func() {
-			someQueue := backup.ResourceQueue{Oid: 1, Name: "some_queue", ActiveStatements: 1, MaxCost: "-1.00", CostOvercommit: false, MinCost: "0.00", Priority: "medium", MemoryLimit: "-1"}
-			maxCostQueue := backup.ResourceQueue{Oid: 1, Name: `"someMaxCostQueue"`, ActiveStatements: -1, MaxCost: "99.9", CostOvercommit: true, MinCost: "0.00", Priority: "medium", MemoryLimit: "-1"}
+			someQueue := backup.ResourceQueue{
+				Oid: 1,
+				Name: "some_queue",
+				ActiveStatements: 1,
+				MaxCost: "-1.00",
+				CostOvercommit: false,
+				MinCost: "0.00",
+				Priority: "medium",
+				MemoryLimit: "-1",
+			}
+			maxCostQueue := backup.ResourceQueue{
+				Oid: 1,
+				Name: `"someMaxCostQueue"`,
+				ActiveStatements: -1,
+				MaxCost: "99.9",
+				CostOvercommit: true,
+				MinCost: "0.00",
+				Priority: "medium",
+				MemoryLimit: "-1",
+			}
 			resQueues := []backup.ResourceQueue{someQueue, maxCostQueue}
 
 			backup.PrintCreateResourceQueueStatements(backupfile, tocfile, resQueues, emptyResQueueMetadata)
-			testutils.ExpectEntry(tocfile.GlobalEntries, 0, "", "", "some_queue", "RESOURCE QUEUE")
+			testutils.ExpectEntry(tocfile.GlobalEntries, 0, "",
+				"", "some_queue", "RESOURCE QUEUE")
 			testutils.AssertBufferContents(tocfile.GlobalEntries, buffer,
 				`CREATE RESOURCE QUEUE some_queue WITH (ACTIVE_STATEMENTS=1);`,
 				`CREATE RESOURCE QUEUE "someMaxCostQueue" WITH (MAX_COST=99.9, COST_OVERCOMMIT=TRUE);`)
 		})
 		It("prints a resource queue with active statements and max cost", func() {
-			someActiveMaxCostQueue := backup.ResourceQueue{Oid: 1, Name: `"someActiveMaxCostQueue"`, ActiveStatements: 5, MaxCost: "62.03", CostOvercommit: false, MinCost: "0.00", Priority: "medium", MemoryLimit: "-1"}
+			someActiveMaxCostQueue := backup.ResourceQueue{
+				Oid: 1,
+				Name: `"someActiveMaxCostQueue"`,
+				ActiveStatements: 5,
+				MaxCost: "62.03",
+				CostOvercommit: false,
+				MinCost: "0.00",
+				Priority: "medium",
+				MemoryLimit: "-1",
+			}
 			resQueues := []backup.ResourceQueue{someActiveMaxCostQueue}
 
 			backup.PrintCreateResourceQueueStatements(backupfile, tocfile, resQueues, emptyResQueueMetadata)
-			testutils.AssertBufferContents(tocfile.GlobalEntries, buffer, `CREATE RESOURCE QUEUE "someActiveMaxCostQueue" WITH (ACTIVE_STATEMENTS=5, MAX_COST=62.03);`)
+			testutils.AssertBufferContents(tocfile.GlobalEntries, buffer,
+				`CREATE RESOURCE QUEUE "someActiveMaxCostQueue" WITH (ACTIVE_STATEMENTS=5, MAX_COST=62.03);`)
 		})
 		It("prints a resource queue with all properties", func() {
-			everythingQueue := backup.ResourceQueue{Oid: 1, Name: `"everythingQueue"`, ActiveStatements: 7, MaxCost: "32.80", CostOvercommit: true, MinCost: "1.34", Priority: "low", MemoryLimit: "2GB"}
+			everythingQueue := backup.ResourceQueue{
+				Oid: 1,
+				Name: `"everythingQueue"`,
+				ActiveStatements: 7,
+				MaxCost: "32.80",
+				CostOvercommit: true,
+				MinCost: "1.34",
+				Priority: "low",
+				MemoryLimit: "2GB",
+			}
 			resQueues := []backup.ResourceQueue{everythingQueue}
 
 			backup.PrintCreateResourceQueueStatements(backupfile, tocfile, resQueues, emptyResQueueMetadata)
-			testutils.AssertBufferContents(tocfile.GlobalEntries, buffer, `CREATE RESOURCE QUEUE "everythingQueue" WITH (ACTIVE_STATEMENTS=7, MAX_COST=32.80, COST_OVERCOMMIT=TRUE, MIN_COST=1.34, PRIORITY=LOW, MEMORY_LIMIT='2GB');`)
+			testutils.AssertBufferContents(tocfile.GlobalEntries, buffer,
+				`CREATE RESOURCE QUEUE "everythingQueue" WITH (ACTIVE_STATEMENTS=7, MAX_COST=32.80, COST_OVERCOMMIT=TRUE, MIN_COST=1.34, PRIORITY=LOW, MEMORY_LIMIT='2GB');`)
 		})
 		It("prints a resource queue with a comment", func() {
-			commentQueue := backup.ResourceQueue{Oid: 1, Name: `"commentQueue"`, ActiveStatements: 1, MaxCost: "-1.00", CostOvercommit: false, MinCost: "0.00", Priority: "medium", MemoryLimit: "-1"}
+			commentQueue := backup.ResourceQueue{
+				Oid: 1,
+				Name: `"commentQueue"`,
+				ActiveStatements: 1,
+				MaxCost: "-1.00",
+				CostOvercommit: false,
+				MinCost: "0.00",
+				Priority: "medium",
+				MemoryLimit: "-1",
+			}
 			resQueues := []backup.ResourceQueue{commentQueue}
-			resQueueMetadata := testutils.DefaultMetadataMap("RESOURCE QUEUE", false, false, true, false)
+			resQueueMetadata := testutils.DefaultMetadataMap("RESOURCE QUEUE",
+				false, false, true, false)
 
 			backup.PrintCreateResourceQueueStatements(backupfile, tocfile, resQueues, resQueueMetadata)
-			testutils.AssertBufferContents(tocfile.GlobalEntries, buffer, `CREATE RESOURCE QUEUE "commentQueue" WITH (ACTIVE_STATEMENTS=1);`,
+			testutils.AssertBufferContents(tocfile.GlobalEntries, buffer,
+				`CREATE RESOURCE QUEUE "commentQueue" WITH (ACTIVE_STATEMENTS=1);`,
 				`COMMENT ON RESOURCE QUEUE "commentQueue" IS 'This is a resource queue comment.';`)
 		})
 		It("prints ALTER statement for pg_default resource queue", func() {
-			pgDefault := backup.ResourceQueue{Oid: 1, Name: "pg_default", ActiveStatements: 1, MaxCost: "-1.00", CostOvercommit: false, MinCost: "0.00", Priority: "medium", MemoryLimit: "-1"}
+			pgDefault := backup.ResourceQueue{
+				Oid: 1,
+				Name: "pg_default",
+				ActiveStatements: 1,
+				MaxCost: "-1.00",
+				CostOvercommit: false,
+				MinCost: "0.00",
+				Priority: "medium",
+				MemoryLimit: "-1",
+			}
 			resQueues := []backup.ResourceQueue{pgDefault}
 
 			backup.PrintCreateResourceQueueStatements(backupfile, tocfile, resQueues, emptyResQueueMetadata)
-			testutils.AssertBufferContents(tocfile.GlobalEntries, buffer, `ALTER RESOURCE QUEUE pg_default WITH (ACTIVE_STATEMENTS=1);`)
+			testutils.AssertBufferContents(tocfile.GlobalEntries, buffer,
+				`ALTER RESOURCE QUEUE pg_default WITH (ACTIVE_STATEMENTS=1);`)
 		})
 	})
 	Describe("PrintCreateResourceGroupStatements", func() {
 		var emptyResGroupMetadata = backup.MetadataMap{}
 		It("prints resource groups", func() {
 			testhelper.SetDBVersion(connectionPool, "5.9.0")
-			someGroup := backup.ResourceGroup{Oid: 1, Name: "some_group", CPURateLimit: "10", MemoryLimit: "20", Concurrency: "15", MemorySharedQuota: "25", MemorySpillRatio: "30"}
-			someGroup2 := backup.ResourceGroup{Oid: 2, Name: "some_group2", CPURateLimit: "20", MemoryLimit: "30", Concurrency: "25", MemorySharedQuota: "35", MemorySpillRatio: "10"}
+			someGroup := backup.ResourceGroup{
+				Oid: 1,
+				Name: "some_group",
+				CPURateLimit: "10",
+				MemoryLimit: "20",
+				Concurrency: "15",
+				MemorySharedQuota: "25",
+				MemorySpillRatio: "30",
+			}
+			someGroup2 := backup.ResourceGroup{
+				Oid: 2,
+				Name: "some_group2",
+				CPURateLimit: "20",
+				MemoryLimit: "30",
+				Concurrency: "25",
+				MemorySharedQuota: "35",
+				MemorySpillRatio: "10",
+			}
 			resGroups := []backup.ResourceGroup{someGroup, someGroup2}
 
 			backup.PrintCreateResourceGroupStatements(backupfile, tocfile, resGroups, emptyResGroupMetadata)
-			testutils.ExpectEntry(tocfile.GlobalEntries, 0, "", "", "some_group", "RESOURCE GROUP")
+			testutils.ExpectEntry(tocfile.GlobalEntries, 0, "",
+				"", "some_group", "RESOURCE GROUP")
 			testutils.AssertBufferContents(tocfile.GlobalEntries, buffer,
 				`CREATE RESOURCE GROUP some_group WITH (CPU_RATE_LIMIT=10, MEMORY_AUDITOR=vmtracker, MEMORY_LIMIT=20, MEMORY_SHARED_QUOTA=25, MEMORY_SPILL_RATIO=30, CONCURRENCY=15);`,
 				`CREATE RESOURCE GROUP some_group2 WITH (CPU_RATE_LIMIT=20, MEMORY_AUDITOR=vmtracker, MEMORY_LIMIT=30, MEMORY_SHARED_QUOTA=35, MEMORY_SPILL_RATIO=10, CONCURRENCY=25);`)
 		})
 		It("prints ALTER statement for default_group resource group", func() {
-			defaultGroup := backup.ResourceGroup{Oid: 1, Name: "default_group", CPURateLimit: "10", MemoryLimit: "20", Concurrency: "15", MemorySharedQuota: "25", MemorySpillRatio: "30"}
+			defaultGroup := backup.ResourceGroup{
+				Oid: 1,
+				Name: "default_group",
+				CPURateLimit: "10",
+				MemoryLimit: "20",
+				Concurrency: "15",
+				MemorySharedQuota: "25",
+				MemorySpillRatio: "30",
+			}
 			resGroups := []backup.ResourceGroup{defaultGroup}
 
 			backup.PrintCreateResourceGroupStatements(backupfile, tocfile, resGroups, emptyResGroupMetadata)
-			testutils.ExpectEntry(tocfile.GlobalEntries, 0, "", "", "default_group", "RESOURCE GROUP")
+			testutils.ExpectEntry(tocfile.GlobalEntries, 0, "",
+				"", "default_group", "RESOURCE GROUP")
 			testutils.AssertBufferContents(tocfile.GlobalEntries, buffer,
 				`ALTER RESOURCE GROUP default_group SET MEMORY_LIMIT 20;`,
 				`ALTER RESOURCE GROUP default_group SET MEMORY_SHARED_QUOTA 25;`,
@@ -165,13 +281,39 @@ GRANT TEMPORARY,CONNECT ON DATABASE testdb TO testrole;`,
 		})
 		It("prints memory_auditor resource groups", func() {
 			testhelper.SetDBVersion(connectionPool, "5.8.0")
-			someGroup := backup.ResourceGroup{Oid: 1, Name: "some_group", CPURateLimit: "10", MemoryLimit: "20", Concurrency: "15", MemorySharedQuota: "25", MemorySpillRatio: "30"}
-			someGroup2 := backup.ResourceGroup{Oid: 2, Name: "some_group2", CPURateLimit: "10", MemoryLimit: "30", Concurrency: "0", MemorySharedQuota: "35", MemorySpillRatio: "10", MemoryAuditor: "1"}
-			someGroup3 := backup.ResourceGroup{Oid: 3, Name: "some_group3", CPURateLimit: "10", MemoryLimit: "30", Concurrency: "25", MemorySharedQuota: "35", MemorySpillRatio: "10", MemoryAuditor: "0"}
+			someGroup := backup.ResourceGroup{Oid: 1,
+				Name: "some_group",
+				CPURateLimit: "10",
+				MemoryLimit: "20",
+				Concurrency: "15",
+				MemorySharedQuota: "25",
+				MemorySpillRatio: "30",
+			}
+			someGroup2 := backup.ResourceGroup{
+				Oid: 2,
+				Name: "some_group2",
+				CPURateLimit: "10",
+				MemoryLimit: "30",
+				Concurrency: "0",
+				MemorySharedQuota: "35",
+				MemorySpillRatio: "10",
+				MemoryAuditor: "1",
+			}
+			someGroup3 := backup.ResourceGroup{
+				Oid: 3,
+				Name: "some_group3",
+				CPURateLimit: "10",
+				MemoryLimit: "30",
+				Concurrency: "25",
+				MemorySharedQuota: "35",
+				MemorySpillRatio: "10",
+				MemoryAuditor: "0",
+			}
 			resGroups := []backup.ResourceGroup{someGroup, someGroup2, someGroup3}
 
 			backup.PrintCreateResourceGroupStatements(backupfile, tocfile, resGroups, emptyResGroupMetadata)
-			testutils.ExpectEntry(tocfile.GlobalEntries, 0, "", "", "some_group", "RESOURCE GROUP")
+			testutils.ExpectEntry(tocfile.GlobalEntries, 0, "",
+				"","some_group", "RESOURCE GROUP")
 			testutils.AssertBufferContents(tocfile.GlobalEntries, buffer,
 				`CREATE RESOURCE GROUP some_group WITH (CPU_RATE_LIMIT=10, MEMORY_AUDITOR=vmtracker, MEMORY_LIMIT=20, MEMORY_SHARED_QUOTA=25, MEMORY_SPILL_RATIO=30, CONCURRENCY=15);`,
 				`CREATE RESOURCE GROUP some_group2 WITH (CPU_RATE_LIMIT=10, MEMORY_AUDITOR=cgroup, MEMORY_LIMIT=30, MEMORY_SHARED_QUOTA=35, MEMORY_SPILL_RATIO=10, CONCURRENCY=0);`,
@@ -179,12 +321,30 @@ GRANT TEMPORARY,CONNECT ON DATABASE testdb TO testrole;`,
 		})
 		It("prints cpuset resource groups", func() {
 			testhelper.SetDBVersion(connectionPool, "5.9.0")
-			someGroup := backup.ResourceGroup{Oid: 1, Name: "some_group", CPURateLimit: "10", MemoryLimit: "20", Concurrency: "15", MemorySharedQuota: "25", MemorySpillRatio: "30"}
-			someGroup2 := backup.ResourceGroup{Oid: 2, Name: "some_group2", CPURateLimit: "-1", Cpuset: "0-3", MemoryLimit: "30", Concurrency: "25", MemorySharedQuota: "35", MemorySpillRatio: "10"}
+			someGroup := backup.ResourceGroup{
+				Oid: 1,
+				Name: "some_group",
+				CPURateLimit: "10",
+				MemoryLimit: "20",
+				Concurrency: "15",
+				MemorySharedQuota: "25",
+				MemorySpillRatio: "30",
+			}
+			someGroup2 := backup.ResourceGroup{
+				Oid: 2,
+				Name: "some_group2",
+				CPURateLimit: "-1",
+				Cpuset: "0-3",
+				MemoryLimit: "30",
+				Concurrency: "25",
+				MemorySharedQuota: "35",
+				MemorySpillRatio: "10",
+			}
 			resGroups := []backup.ResourceGroup{someGroup, someGroup2}
 
 			backup.PrintCreateResourceGroupStatements(backupfile, tocfile, resGroups, emptyResGroupMetadata)
-			testutils.ExpectEntry(tocfile.GlobalEntries, 0, "", "", "some_group", "RESOURCE GROUP")
+			testutils.ExpectEntry(tocfile.GlobalEntries, 0, "",
+				"", "some_group", "RESOURCE GROUP")
 			testutils.AssertBufferContents(tocfile.GlobalEntries, buffer,
 				`CREATE RESOURCE GROUP some_group WITH (CPU_RATE_LIMIT=10, MEMORY_AUDITOR=vmtracker, MEMORY_LIMIT=20, MEMORY_SHARED_QUOTA=25, MEMORY_SPILL_RATIO=30, CONCURRENCY=15);`,
 				`CREATE RESOURCE GROUP some_group2 WITH (CPUSET='0-3', MEMORY_AUDITOR=vmtracker, MEMORY_LIMIT=30, MEMORY_SHARED_QUOTA=35, MEMORY_SPILL_RATIO=10, CONCURRENCY=25);`)
@@ -193,14 +353,47 @@ GRANT TEMPORARY,CONNECT ON DATABASE testdb TO testrole;`,
 		It("prints memory_spill_ratio resource groups in new syntax", func() {
 			testhelper.SetDBVersion(connectionPool, "5.2.0")
 
-			defaultGroup := backup.ResourceGroup{Oid: 1, Name: "default_group", CPURateLimit: "10", MemoryLimit: "20", Concurrency: "15", MemorySharedQuota: "25", MemorySpillRatio: "30 MB"}
-			adminGroup := backup.ResourceGroup{Oid: 2, Name: "admin_group", CPURateLimit: "10", MemoryLimit: "20", Concurrency: "15", MemorySharedQuota: "25", MemorySpillRatio: "30"}
-			someGroup := backup.ResourceGroup{Oid: 3, Name: "some_group", CPURateLimit: "20", MemoryLimit: "30", Concurrency: "25", MemorySharedQuota: "35", MemorySpillRatio: "40 MB"}
-			someGroup2 := backup.ResourceGroup{Oid: 4, Name: "some_group2", CPURateLimit: "20", MemoryLimit: "30", Concurrency: "25", MemorySharedQuota: "35", MemorySpillRatio: "40"}
+			defaultGroup := backup.ResourceGroup{
+				Oid: 1,
+				Name: "default_group",
+				CPURateLimit: "10",
+				MemoryLimit: "20",
+				Concurrency: "15",
+				MemorySharedQuota: "25",
+				MemorySpillRatio: "30 MB",
+			}
+			adminGroup := backup.ResourceGroup{
+				Oid: 2,
+				Name: "admin_group",
+				CPURateLimit: "10",
+				MemoryLimit: "20",
+				Concurrency: "15",
+				MemorySharedQuota: "25",
+				MemorySpillRatio: "30",
+			}
+			someGroup := backup.ResourceGroup{
+				Oid: 3,
+				Name: "some_group",
+				CPURateLimit: "20",
+				MemoryLimit: "30",
+				Concurrency: "25",
+				MemorySharedQuota: "35",
+				MemorySpillRatio: "40 MB",
+			}
+			someGroup2 := backup.ResourceGroup{
+				Oid: 4,
+				Name: "some_group2",
+				CPURateLimit: "20",
+				MemoryLimit: "30",
+				Concurrency: "25",
+				MemorySharedQuota: "35",
+				MemorySpillRatio: "40",
+			}
 			resGroups := []backup.ResourceGroup{defaultGroup, adminGroup, someGroup, someGroup2}
 
 			backup.PrintCreateResourceGroupStatements(backupfile, tocfile, resGroups, emptyResGroupMetadata)
-			testutils.ExpectEntry(tocfile.GlobalEntries, 0, "", "", "default_group", "RESOURCE GROUP")
+			testutils.ExpectEntry(tocfile.GlobalEntries, 0, "",
+				"", "default_group", "RESOURCE GROUP")
 			testutils.AssertBufferContents(tocfile.GlobalEntries, buffer,
 				`ALTER RESOURCE GROUP default_group SET MEMORY_LIMIT 20;`,
 				`ALTER RESOURCE GROUP default_group SET MEMORY_SHARED_QUOTA 25;`,
@@ -218,8 +411,25 @@ GRANT TEMPORARY,CONNECT ON DATABASE testdb TO testrole;`,
 		It("prints correct CREATE RESOURCE GROUP syntax for old resource groups on GPDB 5.8", func() {
 			// Memory Auditor reslimittype was added in GPDB 5.8. Make sure the older resource group object will have the proper default.
 			testhelper.SetDBVersion(connectionPool, "5.8.0")
-			resGroup52 := backup.ResourceGroup{Oid: 3, Name: "resGroup52", CPURateLimit: "20", MemoryLimit: "30", Concurrency: "25", MemorySharedQuota: "35", MemorySpillRatio: "40"}
-			resGroup58 := backup.ResourceGroup{Oid: 4, Name: "resGroup58", CPURateLimit: "20", MemoryLimit: "30", Concurrency: "25", MemorySharedQuota: "35", MemorySpillRatio: "40", MemoryAuditor: "1"}
+			resGroup52 := backup.ResourceGroup{
+				Oid: 3,
+				Name: "resGroup52",
+				CPURateLimit: "20",
+				MemoryLimit: "30",
+				Concurrency: "25",
+				MemorySharedQuota: "35",
+				MemorySpillRatio: "40",
+			}
+			resGroup58 := backup.ResourceGroup{
+				Oid: 4,
+				Name: "resGroup58",
+				CPURateLimit: "20",
+				MemoryLimit: "30",
+				Concurrency: "25",
+				MemorySharedQuota: "35",
+				MemorySpillRatio: "40",
+				MemoryAuditor: "1",
+			}
 			resGroups := []backup.ResourceGroup{resGroup52, resGroup58}
 
 			backup.PrintCreateResourceGroupStatements(backupfile, tocfile, resGroups, emptyResGroupMetadata)
@@ -231,9 +441,36 @@ GRANT TEMPORARY,CONNECT ON DATABASE testdb TO testrole;`,
 			// Cpuset reslimittype was added in GPDB 5.9. Make sure the older resource group objects
 			// will have the proper default. In this case, you either have cpu_rate_limit or cpuset.
 			testhelper.SetDBVersion(connectionPool, "5.9.0")
-			resGroup52 := backup.ResourceGroup{Oid: 3, Name: "resGroup52", CPURateLimit: "20", MemoryLimit: "30", Concurrency: "25", MemorySharedQuota: "35", MemorySpillRatio: "40"}
-			resGroup58 := backup.ResourceGroup{Oid: 4, Name: "resGroup58", CPURateLimit: "20", MemoryLimit: "30", Concurrency: "25", MemorySharedQuota: "35", MemorySpillRatio: "40", MemoryAuditor: "1"}
-			resGroup59 := backup.ResourceGroup{Oid: 5, Name: "resGroup59", CPURateLimit: "-1", MemoryLimit: "30", Concurrency: "25", MemorySharedQuota: "35", MemorySpillRatio: "40", MemoryAuditor: "1", Cpuset: "1"}
+			resGroup52 := backup.ResourceGroup{
+				Oid: 3,
+				Name: "resGroup52",
+				CPURateLimit: "20",
+				MemoryLimit: "30",
+				Concurrency: "25",
+				MemorySharedQuota: "35",
+				MemorySpillRatio: "40",
+			}
+			resGroup58 := backup.ResourceGroup{
+				Oid: 4,
+				Name: "resGroup58",
+				CPURateLimit: "20",
+				MemoryLimit: "30",
+				Concurrency: "25",
+				MemorySharedQuota: "35",
+				MemorySpillRatio: "40",
+				MemoryAuditor: "1",
+			}
+			resGroup59 := backup.ResourceGroup{
+				Oid: 5,
+				Name: "resGroup59",
+				CPURateLimit: "-1",
+				MemoryLimit: "30",
+				Concurrency: "25",
+				MemorySharedQuota: "35",
+				MemorySpillRatio: "40",
+				MemoryAuditor: "1",
+				Cpuset: "1",
+			}
 			resGroups := []backup.ResourceGroup{resGroup52, resGroup58, resGroup59}
 
 			backup.PrintCreateResourceGroupStatements(backupfile, tocfile, resGroups, emptyResGroupMetadata)
@@ -246,7 +483,8 @@ GRANT TEMPORARY,CONNECT ON DATABASE testdb TO testrole;`,
 	Describe("PrintResetResourceGroupStatements", func() {
 		It("prints prepare resource groups", func() {
 			backup.PrintResetResourceGroupStatements(backupfile, tocfile)
-			testutils.ExpectEntry(tocfile.GlobalEntries, 0, "", "", "admin_group", "RESOURCE GROUP")
+			testutils.ExpectEntry(tocfile.GlobalEntries, 0, "",
+				"", "admin_group", "RESOURCE GROUP")
 			testutils.AssertBufferContents(tocfile.GlobalEntries, buffer,
 				`ALTER RESOURCE GROUP admin_group SET CPU_RATE_LIMIT 1;`,
 				`ALTER RESOURCE GROUP admin_group SET MEMORY_LIMIT 1;`,
@@ -311,16 +549,19 @@ GRANT TEMPORARY,CONNECT ON DATABASE testdb TO testrole;`,
 			},
 		}
 		It("prints basic role", func() {
-			roleMetadataMap := testutils.DefaultMetadataMap("ROLE", false, false, true, false)
+			roleMetadataMap := testutils.DefaultMetadataMap("ROLE",
+				false, false, true, false)
 			backup.PrintCreateRoleStatements(backupfile, tocfile, []backup.Role{testrole1}, roleMetadataMap)
 
-			testutils.ExpectEntry(tocfile.GlobalEntries, 0, "", "", "testrole1", "ROLE")
+			testutils.ExpectEntry(tocfile.GlobalEntries, 0, "",
+				"", "testrole1", "ROLE")
 			testutils.AssertBufferContents(tocfile.GlobalEntries, buffer, `CREATE ROLE testrole1;
 ALTER ROLE testrole1 WITH NOSUPERUSER NOINHERIT NOCREATEROLE NOCREATEDB NOLOGIN RESOURCE QUEUE pg_default RESOURCE GROUP default_group;`,
 				`COMMENT ON ROLE testrole1 IS 'This is a role comment.';`)
 		})
 		It("prints roles with non-defaults and security label", func() {
-			roleMetadataMap := testutils.DefaultMetadataMap("ROLE", false, false, true, true)
+			roleMetadataMap := testutils.DefaultMetadataMap("ROLE",
+				false, false, true, true)
 			backup.PrintCreateRoleStatements(backupfile, tocfile, []backup.Role{testrole2}, roleMetadataMap)
 
 			expectedStatements := []string{
@@ -348,17 +589,35 @@ ALTER ROLE "testRole2" WITH SUPERUSER INHERIT CREATEROLE CREATEDB LOGIN REPLICAT
 		})
 	})
 	Describe("PrintRoleMembershipStatements", func() {
-		roleWith := backup.RoleMember{Role: "group", Member: "rolewith", Grantor: "grantor", IsAdmin: true}
-		roleWithout := backup.RoleMember{Role: "group", Member: "rolewithout", Grantor: "grantor", IsAdmin: false}
-		roleWithoutGrantor := backup.RoleMember{Role: "group", Member: "rolewithoutgrantor", Grantor: "", IsAdmin: false}
+		roleWith := backup.RoleMember{
+			Role: "group",
+			Member: "rolewith",
+			Grantor: "grantor",
+			IsAdmin: true,
+		}
+		roleWithout := backup.RoleMember{
+			Role: "group",
+			Member: "rolewithout",
+			Grantor: "grantor",
+			IsAdmin: false,
+		}
+		roleWithoutGrantor := backup.RoleMember{
+			Role: "group",
+			Member: "rolewithoutgrantor",
+			Grantor: "",
+			IsAdmin: false,
+		}
 		It("prints a role without ADMIN OPTION", func() {
 			backup.PrintRoleMembershipStatements(backupfile, tocfile, []backup.RoleMember{roleWithout})
-			testutils.ExpectEntry(tocfile.GlobalEntries, 0, "", "", "rolewithout", "ROLE GRANT")
-			testutils.AssertBufferContents(tocfile.GlobalEntries, buffer, `GRANT group TO rolewithout GRANTED BY grantor;`)
+			testutils.ExpectEntry(tocfile.GlobalEntries, 0, "",
+				"", "rolewithout", "ROLE GRANT")
+			testutils.AssertBufferContents(tocfile.GlobalEntries, buffer,
+				`GRANT group TO rolewithout GRANTED BY grantor;`)
 		})
 		It("prints a role WITH ADMIN OPTION", func() {
 			backup.PrintRoleMembershipStatements(backupfile, tocfile, []backup.RoleMember{roleWith})
-			testutils.AssertBufferContents(tocfile.GlobalEntries, buffer, `GRANT group TO rolewith WITH ADMIN OPTION GRANTED BY grantor;`)
+			testutils.AssertBufferContents(tocfile.GlobalEntries, buffer,
+				`GRANT group TO rolewith WITH ADMIN OPTION GRANTED BY grantor;`)
 		})
 		It("prints multiple roles", func() {
 			backup.PrintRoleMembershipStatements(backupfile, tocfile, []backup.RoleMember{roleWith, roleWithout})
@@ -367,8 +626,10 @@ ALTER ROLE "testRole2" WITH SUPERUSER INHERIT CREATEROLE CREATEDB LOGIN REPLICAT
 				`GRANT group TO rolewithout GRANTED BY grantor;`)
 		})
 		It("prints a role without a grantor", func() {
-			backup.PrintRoleMembershipStatements(backupfile, tocfile, []backup.RoleMember{roleWithoutGrantor})
-			testutils.AssertBufferContents(tocfile.GlobalEntries, buffer, `GRANT group TO rolewithoutgrantor;`)
+			backup.PrintRoleMembershipStatements(backupfile, tocfile,
+				[]backup.RoleMember{roleWithoutGrantor})
+			testutils.AssertBufferContents(tocfile.GlobalEntries, buffer,
+				`GRANT group TO rolewithoutgrantor;`)
 		})
 	})
 	Describe("PrintRoleGUCStatements", func() {
@@ -381,8 +642,10 @@ ALTER ROLE "testRole2" WITH SUPERUSER INHERIT CREATEROLE CREATEDB LOGIN REPLICAT
 			}
 			backup.PrintRoleGUCStatements(backupfile, tocfile, roleConfigMap)
 
-			testutils.ExpectEntry(tocfile.GlobalEntries, 0, "", "", "testrole1", "ROLE GUCS")
-			testutils.AssertBufferContents(tocfile.GlobalEntries, buffer, `ALTER ROLE testrole1 SET search_path TO public;`,
+			testutils.ExpectEntry(tocfile.GlobalEntries, 0, "",
+				"", "testrole1", "ROLE GUCS")
+			testutils.AssertBufferContents(tocfile.GlobalEntries, buffer,
+				`ALTER ROLE testrole1 SET search_path TO public;`,
 				`ALTER ROLE testrole1 IN DATABASE testdb SET client_min_messages TO 'error';`,
 				`ALTER ROLE testrole1 SET gp_default_storage_options TO 'appendonly=true, compresslevel=6, orientation=row, compresstype=none';`)
 		})
@@ -391,13 +654,17 @@ ALTER ROLE "testRole2" WITH SUPERUSER INHERIT CREATEROLE CREATEDB LOGIN REPLICAT
 		expectedTablespace := backup.Tablespace{Oid: 1, Tablespace: "test_tablespace", FileLocation: "test_filespace"}
 		It("prints a basic tablespace with a filespace", func() {
 			emptyMetadataMap := backup.MetadataMap{}
-			backup.PrintCreateTablespaceStatements(backupfile, tocfile, []backup.Tablespace{expectedTablespace}, emptyMetadataMap)
+			backup.PrintCreateTablespaceStatements(backupfile, tocfile,
+				[]backup.Tablespace{expectedTablespace}, emptyMetadataMap)
 			testutils.ExpectEntry(tocfile.GlobalEntries, 0, "", "", "test_tablespace", "TABLESPACE")
-			testutils.AssertBufferContents(tocfile.GlobalEntries, buffer, `CREATE TABLESPACE test_tablespace FILESPACE test_filespace;`)
+			testutils.AssertBufferContents(tocfile.GlobalEntries, buffer,
+				`CREATE TABLESPACE test_tablespace FILESPACE test_filespace;`)
 		})
 		It("prints a tablespace with privileges, an owner, security label, and a comment", func() {
-			tablespaceMetadataMap := testutils.DefaultMetadataMap("TABLESPACE", true, true, true, true)
-			backup.PrintCreateTablespaceStatements(backupfile, tocfile, []backup.Tablespace{expectedTablespace}, tablespaceMetadataMap)
+			tablespaceMetadataMap := testutils.DefaultMetadataMap("TABLESPACE",
+				true, true, true, true)
+			backup.PrintCreateTablespaceStatements(backupfile, tocfile,
+				[]backup.Tablespace{expectedTablespace}, tablespaceMetadataMap)
 			expectedStatements := []string{
 				`CREATE TABLESPACE test_tablespace FILESPACE test_filespace;`,
 				`COMMENT ON TABLESPACE test_tablespace IS 'This is a tablespace comment.';`,
@@ -415,9 +682,11 @@ GRANT ALL ON TABLESPACE test_tablespace TO testrole;`,
 				SegmentLocations: []string{},
 			}
 			emptyMetadataMap := backup.MetadataMap{}
-			backup.PrintCreateTablespaceStatements(backupfile, tocfile, []backup.Tablespace{expectedTablespace}, emptyMetadataMap)
+			backup.PrintCreateTablespaceStatements(backupfile, tocfile,
+				[]backup.Tablespace{expectedTablespace}, emptyMetadataMap)
 			testutils.ExpectEntry(tocfile.GlobalEntries, 0, "", "", "test_tablespace", "TABLESPACE")
-			testutils.AssertBufferContents(tocfile.GlobalEntries, buffer, `CREATE TABLESPACE test_tablespace LOCATION '/data/dir';`)
+			testutils.AssertBufferContents(tocfile.GlobalEntries, buffer,
+				`CREATE TABLESPACE test_tablespace LOCATION '/data/dir';`)
 		})
 		It("prints a tablespace with per-segment tablespaces", func() {
 			expectedTablespace := backup.Tablespace{
@@ -425,9 +694,12 @@ GRANT ALL ON TABLESPACE test_tablespace TO testrole;`,
 				SegmentLocations: []string{"content1='/data/dir1'", "content2='/data/dir2'", "content3='/data/dir3'"},
 			}
 			emptyMetadataMap := backup.MetadataMap{}
-			backup.PrintCreateTablespaceStatements(backupfile, tocfile, []backup.Tablespace{expectedTablespace}, emptyMetadataMap)
-			testutils.ExpectEntry(tocfile.GlobalEntries, 0, "", "", "test_tablespace", "TABLESPACE")
-			testutils.AssertBufferContents(tocfile.GlobalEntries, buffer, `CREATE TABLESPACE test_tablespace LOCATION '/data/dir'
+			backup.PrintCreateTablespaceStatements(backupfile, tocfile,
+				[]backup.Tablespace{expectedTablespace}, emptyMetadataMap)
+			testutils.ExpectEntry(tocfile.GlobalEntries, 0, "",
+				"", "test_tablespace", "TABLESPACE")
+			testutils.AssertBufferContents(tocfile.GlobalEntries, buffer,
+				`CREATE TABLESPACE test_tablespace LOCATION '/data/dir'
 	WITH (content1='/data/dir1', content2='/data/dir2', content3='/data/dir3');`)
 		})
 		It("prints a tablespace with options", func() {
@@ -437,9 +709,12 @@ GRANT ALL ON TABLESPACE test_tablespace TO testrole;`,
 				Options:          "param1=val1, param2=val2",
 			}
 			emptyMetadataMap := backup.MetadataMap{}
-			backup.PrintCreateTablespaceStatements(backupfile, tocfile, []backup.Tablespace{expectedTablespace}, emptyMetadataMap)
-			testutils.ExpectEntry(tocfile.GlobalEntries, 0, "", "", "test_tablespace", "TABLESPACE")
-			testutils.ExpectEntry(tocfile.GlobalEntries, 1, "", "", "test_tablespace", "TABLESPACE")
+			backup.PrintCreateTablespaceStatements(backupfile, tocfile,
+				[]backup.Tablespace{expectedTablespace}, emptyMetadataMap)
+			testutils.ExpectEntry(tocfile.GlobalEntries, 0, "",
+				"", "test_tablespace", "TABLESPACE")
+			testutils.ExpectEntry(tocfile.GlobalEntries, 1, "",
+				"", "test_tablespace", "TABLESPACE")
 			expectedStatements := []string{`CREATE TABLESPACE test_tablespace LOCATION '/data/dir';`,
 				`ALTER TABLESPACE test_tablespace SET (param1=val1, param2=val2);`}
 			testutils.AssertBufferContents(tocfile.GlobalEntries, buffer, expectedStatements...)

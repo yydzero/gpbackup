@@ -11,7 +11,17 @@ import (
 )
 
 var _ = Describe("backup/predata_externals tests", func() {
-	extTableEmpty := backup.ExternalTableDefinition{Oid: 0, Type: -2, Protocol: -2, ExecLocation: "ALL_SEGMENTS", FormatType: "t", RejectLimit: 0, Encoding: "UTF-8", Writable: false, URIs: nil}
+	extTableEmpty := backup.ExternalTableDefinition{
+		Oid: 0,
+		Type: -2,
+		Protocol: -2,
+		ExecLocation: "ALL_SEGMENTS",
+		FormatType: "t",
+		RejectLimit: 0,
+		Encoding: "UTF-8",
+		Writable: false,
+		URIs: nil,
+	}
 
 	BeforeEach(func() {
 		tocfile, backupfile = testutils.InitializeTestTOC(buffer, "predata")
@@ -84,7 +94,17 @@ var _ = Describe("backup/predata_externals tests", func() {
 		BeforeEach(func() {
 			testTable = backup.Table{
 				Relation:        backup.Relation{Schema: "public", Name: "tablename"},
-				TableDefinition: backup.TableDefinition{DistPolicy: "DISTRIBUTED RANDOMLY", PartDef: "", PartTemplateDef: "", StorageOpts: "", TablespaceName: "", ColumnDefs: []backup.ColumnDefinition{}, IsExternal: true, ExtTableDef: extTableEmpty}}
+				TableDefinition: backup.TableDefinition{
+					DistPolicy: "DISTRIBUTED RANDOMLY",
+					PartDef: "",
+					PartTemplateDef: "",
+					StorageOpts: "",
+					TablespaceName: "",
+					ColumnDefs: []backup.ColumnDefinition{},
+					IsExternal: true,
+					ExtTableDef: extTableEmpty,
+				},
+			}
 			extTableDef = extTableEmpty
 		})
 
@@ -93,7 +113,8 @@ var _ = Describe("backup/predata_externals tests", func() {
 			extTableDef.URIs = []string{"file://host:port/path/file"}
 			testTable.ExtTableDef = extTableDef
 			backup.PrintExternalTableCreateStatement(backupfile, tocfile, testTable)
-			testutils.ExpectEntry(tocfile.PredataEntries, 0, "public", "", "tablename", "TABLE")
+			testutils.ExpectEntry(tocfile.PredataEntries, 0,
+				"public", "", "tablename", "TABLE")
 			testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
 				`CREATE READABLE EXTERNAL TABLE public.tablename (
 ) LOCATION (
@@ -442,10 +463,42 @@ ENCODING 'UTF-8'`)
 		})
 	})
 	Describe("PrintExternalProtocolStatements", func() {
-		protocolUntrustedReadWrite := backup.ExternalProtocol{Oid: 1, Name: "s3", Owner: "testrole", Trusted: false, ReadFunction: 1, WriteFunction: 2, Validator: 0}
-		protocolUntrustedReadValidator := backup.ExternalProtocol{Oid: 1, Name: "s3", Owner: "testrole", Trusted: false, ReadFunction: 1, WriteFunction: 0, Validator: 3}
-		protocolUntrustedWriteOnly := backup.ExternalProtocol{Oid: 1, Name: "s3", Owner: "testrole", Trusted: false, ReadFunction: 0, WriteFunction: 2, Validator: 0}
-		protocolTrustedReadWriteValidator := backup.ExternalProtocol{Oid: 1, Name: "s3", Owner: "testrole", Trusted: true, ReadFunction: 1, WriteFunction: 2, Validator: 3}
+		protocolUntrustedReadWrite := backup.ExternalProtocol{
+			Oid: 1,
+			Name: "s3",
+			Owner: "testrole",
+			Trusted: false,
+			ReadFunction: 1,
+			WriteFunction: 2,
+			Validator: 0,
+		}
+		protocolUntrustedReadValidator := backup.ExternalProtocol{
+			Oid: 1,
+			Name: "s3",
+			Owner: "testrole",
+			Trusted: false,
+			ReadFunction: 1,
+			WriteFunction: 0,
+			Validator: 3,
+		}
+		protocolUntrustedWriteOnly := backup.ExternalProtocol{
+			Oid: 1,
+			Name: "s3",
+			Owner: "testrole",
+			Trusted: false,
+			ReadFunction: 0,
+			WriteFunction: 2,
+			Validator: 0,
+		}
+		protocolTrustedReadWriteValidator := backup.ExternalProtocol{
+			Oid: 1,
+			Name: "s3",
+			Owner: "testrole",
+			Trusted: true,
+			ReadFunction: 1,
+			WriteFunction: 2,
+			Validator: 3,
+		}
 		emptyMetadata := backup.ObjectMetadata{}
 		funcInfoMap := map[uint32]backup.FunctionInfo{
 			1: {QualifiedName: "public.read_fn_s3", Arguments: "", IsInternal: false},
@@ -475,7 +528,9 @@ ENCODING 'UTF-8'`)
 				`CREATE TRUSTED PROTOCOL s3 (readfunc = public.read_fn_s3, writefunc = public.write_fn_s3, validatorfunc = public.validator);`)
 		})
 		It("prints a protocol with privileges and an owner", func() {
-			protoMetadata := backup.ObjectMetadata{Privileges: []backup.ACL{{Grantee: "testrole", Select: true, Insert: true}}, Owner: "testrole"}
+			protoMetadata := backup.ObjectMetadata{Privileges: []backup.ACL{
+				{Grantee: "testrole", Select: true, Insert: true},
+			}, Owner: "testrole"}
 
 			backup.PrintCreateExternalProtocolStatement(backupfile, tocfile, protocolUntrustedReadWrite, funcInfoMap, protoMetadata)
 			expectedStatements := []string{
@@ -489,8 +544,16 @@ GRANT ALL ON PROTOCOL s3 TO testrole;`}
 	})
 	Describe("PrintExchangeExternalPartitionStatements", func() {
 		tables := []backup.Table{
-			{Relation: backup.Relation{Oid: 1, Schema: "public", Name: "partition_table_ext_part_"}},
-			{Relation: backup.Relation{Oid: 2, Schema: "public", Name: "partition_table"}},
+			{Relation: backup.Relation{
+				Oid: 1,
+				Schema: "public",
+				Name: "partition_table_ext_part_"},
+			},
+			{Relation: backup.Relation{
+				Oid: 2,
+				Schema: "public",
+				Name: "partition_table"},
+			},
 		}
 		emptyPartInfoMap := make(map[uint32]backup.PartitionInfo)
 		It("writes an alter statement for a named partition", func() {
@@ -627,7 +690,9 @@ DROP TABLE public.partition_table_ext_part_;`)
 				PartitionRank:          3,
 				IsExternal:             false,
 			}
-			partInfoMap := map[uint32]backup.PartitionInfo{externalPartitionParent1.PartitionRuleOid: externalPartitionParent1, externalPartitionParent2.PartitionRuleOid: externalPartitionParent2}
+			partInfoMap := map[uint32]backup.PartitionInfo{
+				externalPartitionParent1.PartitionRuleOid: externalPartitionParent1,
+				externalPartitionParent2.PartitionRuleOid: externalPartitionParent2}
 			externalPartitions := []backup.PartitionInfo{externalPartition}
 			backup.PrintExchangeExternalPartitionStatements(backupfile, tocfile, externalPartitions, partInfoMap, tables)
 			testutils.AssertBufferContents(tocfile.PredataEntries, buffer,

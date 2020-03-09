@@ -170,11 +170,11 @@ type ColumnDefinition struct {
 	Oid                   uint32 `db:"attrelid"`
 	Num                   int    `db:"attnum"`
 	Name                  string
-	NotNull               bool `db:"attnotnull"`
-	HasDefault            bool `db:"atthasdef"`
+	NotNull               bool   `db:"attnotnull"`
+	HasDefault            bool   `db:"atthasdef"`
 	Type                  string
 	Encoding              string
-	StatTarget            int `db:"attstattarget"`
+	StatTarget            int    `db:"attstattarget"`
 	StorageType           string
 	DefaultVal            string
 	Comment               string
@@ -192,6 +192,30 @@ var storageTypeCodes = map[string]string{
 	"m": "MAIN",
 	"p": "PLAIN",
 	"x": "EXTENDED",
+}
+
+func (c ColumnDefinition) GetColumnDefinition(tableType string) string {
+
+	line := fmt.Sprintf("\t%s %s", c.Name, c.Type)
+	if tableType != "" {
+		line = fmt.Sprintf("\t%s WITH OPTIONS", c.Name)
+	}
+	if c.FdwOptions != "" {
+		line += fmt.Sprintf(" OPTIONS (%s)", c.FdwOptions)
+	}
+	if c.Collation != "" {
+		line += fmt.Sprintf(" COLLATE %s", c.Collation)
+	}
+	if c.HasDefault {
+		line += fmt.Sprintf(" DEFAULT %s", c.DefaultVal)
+	}
+	if c.NotNull {
+		line += " NOT NULL"
+	}
+	if c.Encoding != "" {
+		line += fmt.Sprintf(" ENCODING (%s)", c.Encoding)
+	}
+    return line
 }
 
 func GetColumnDefinitions(connectionPool *dbconn.DBConn) map[uint32][]ColumnDefinition {

@@ -81,7 +81,8 @@ func AppendExtPartSuffix(name string) string {
  * the search_path; this will aid in later filtering to include or exclude certain tables during the
  * backup process, and allows customers to copy just the CREATE TABLE block in order to use it directly.
  */
-func PrintCreateTableStatement(metadataFile *utils.FileWithByteCount, toc *toc.TOC, table Table, tableMetadata ObjectMetadata) {
+func PrintCreateTableStatement(metadataFile *utils.FileWithByteCount,
+	toc *toc.TOC, table Table, tableMetadata ObjectMetadata) {
 	start := metadataFile.ByteCount
 	// We use an empty TOC below to keep count of the bytes for testing purposes.
 	if table.IsExternal && table.PartitionLevelInfo.Level != "p" {
@@ -94,7 +95,8 @@ func PrintCreateTableStatement(metadataFile *utils.FileWithByteCount, toc *toc.T
 	PrintPostCreateTableStatements(metadataFile, toc, table, tableMetadata)
 }
 
-func PrintRegularTableCreateStatement(metadataFile *utils.FileWithByteCount, toc *toc.TOC, table Table) {
+func PrintRegularTableCreateStatement(metadataFile *utils.FileWithByteCount,
+	toc *toc.TOC, table Table) {
 	start := metadataFile.ByteCount
 
 	typeStr := ""
@@ -144,28 +146,11 @@ func PrintRegularTableCreateStatement(metadataFile *utils.FileWithByteCount, toc
 	}
 }
 
-func printColumnDefinitions(metadataFile *utils.FileWithByteCount, columnDefs []ColumnDefinition, tableType string) {
+func printColumnDefinitions(metadataFile *utils.FileWithByteCount,
+	columnDefs []ColumnDefinition, tableType string) {
 	lines := make([]string, 0)
 	for _, column := range columnDefs {
-		line := fmt.Sprintf("\t%s %s", column.Name, column.Type)
-		if tableType != "" {
-			line = fmt.Sprintf("\t%s WITH OPTIONS", column.Name)
-		}
-		if column.FdwOptions != "" {
-			line += fmt.Sprintf(" OPTIONS (%s)", column.FdwOptions)
-		}
-		if column.Collation != "" {
-			line += fmt.Sprintf(" COLLATE %s", column.Collation)
-		}
-		if column.HasDefault {
-			line += fmt.Sprintf(" DEFAULT %s", column.DefaultVal)
-		}
-		if column.NotNull {
-			line += " NOT NULL"
-		}
-		if column.Encoding != "" {
-			line += fmt.Sprintf(" ENCODING (%s)", column.Encoding)
-		}
+		line := column.GetColumnDefinition(tableType)
 		lines = append(lines, line)
 	}
 	if len(lines) > 0 {
@@ -173,7 +158,8 @@ func printColumnDefinitions(metadataFile *utils.FileWithByteCount, columnDefs []
 	}
 }
 
-func printAlterColumnStatements(metadataFile *utils.FileWithByteCount, table Table, columnDefs []ColumnDefinition) {
+func printAlterColumnStatements(metadataFile *utils.FileWithByteCount,
+	table Table, columnDefs []ColumnDefinition) {
 	for _, column := range columnDefs {
 		if column.StatTarget > -1 {
 			metadataFile.MustPrintf("\nALTER TABLE ONLY %s ALTER COLUMN %s SET STATISTICS %d;", table.FQN(), column.Name, column.StatTarget)
@@ -191,7 +177,8 @@ func printAlterColumnStatements(metadataFile *utils.FileWithByteCount, table Tab
  * This function prints additional statements that come after the CREATE TABLE
  * statement for both regular and external tables.
  */
-func PrintPostCreateTableStatements(metadataFile *utils.FileWithByteCount, toc *toc.TOC, table Table, tableMetadata ObjectMetadata) {
+func PrintPostCreateTableStatements(metadataFile *utils.FileWithByteCount,
+	toc *toc.TOC, table Table, tableMetadata ObjectMetadata) {
 	PrintObjectMetadata(metadataFile, toc, tableMetadata, table, "")
 	statements := make([]string, 0)
 	for _, att := range table.ColumnDefs {
@@ -236,7 +223,8 @@ func PrintPostCreateTableStatements(metadataFile *utils.FileWithByteCount, toc *
  * This function is largely derived from the dumpSequence() function in pg_dump.c.  The values of
  * minVal and maxVal come from SEQ_MINVALUE and SEQ_MAXVALUE, defined in include/commands/sequence.h.
  */
-func PrintCreateSequenceStatements(metadataFile *utils.FileWithByteCount, toc *toc.TOC, sequences []Sequence, sequenceMetadata MetadataMap) {
+func PrintCreateSequenceStatements(metadataFile *utils.FileWithByteCount,
+	toc *toc.TOC, sequences []Sequence, sequenceMetadata MetadataMap) {
 	for _, sequence := range sequences {
 		start := metadataFile.ByteCount
 		metadataFile.MustPrintf(sequence.GetCreateStatement())
@@ -246,7 +234,8 @@ func PrintCreateSequenceStatements(metadataFile *utils.FileWithByteCount, toc *t
 	}
 }
 
-func PrintAlterSequenceStatements(metadataFile *utils.FileWithByteCount, tocfile *toc.TOC, sequences []Sequence) {
+func PrintAlterSequenceStatements(metadataFile *utils.FileWithByteCount,
+	tocfile *toc.TOC, sequences []Sequence) {
 	gplog.Verbose("Writing ALTER SEQUENCE statements to metadata file")
 	for _, sequence := range sequences {
 		seqFQN := sequence.FQN()
@@ -262,10 +251,10 @@ func PrintAlterSequenceStatements(metadataFile *utils.FileWithByteCount, tocfile
 }
 
 // A view's column names are automatically factored into it's definition.
-func PrintCreateViewStatement(metadataFile *utils.FileWithByteCount, toc *toc.TOC, view View, viewMetadata ObjectMetadata) {
+func PrintCreateViewStatement(metadataFile *utils.FileWithByteCount,
+	toc *toc.TOC, view View, viewMetadata ObjectMetadata) {
 	start := metadataFile.ByteCount
-	// Option's keyword WITH is expected to be prepended to its options in the SQL statement
-	metadataFile.MustPrintf("\n\nCREATE VIEW %s%s AS %s\n", view.FQN(), view.Options, view.Definition)
+	metadataFile.MustPrintf(view.GetCreateStatement())
 
 	section, entry := view.GetMetadataEntry()
 	toc.AddMetadataEntry(section, entry, start, metadataFile.ByteCount)
@@ -273,7 +262,8 @@ func PrintCreateViewStatement(metadataFile *utils.FileWithByteCount, toc *toc.TO
 }
 
 // A materialized view's column names are automatically factored into it's definition.
-func PrintCreateMaterializedViewStatement(metadataFile *utils.FileWithByteCount, toc *toc.TOC, mview MaterializedView, mviewMetadata ObjectMetadata) {
+func PrintCreateMaterializedViewStatement(metadataFile *utils.FileWithByteCount,
+	toc *toc.TOC, mview MaterializedView, mviewMetadata ObjectMetadata) {
 	start := metadataFile.ByteCount
 	var tablespaceClause string
 	if mview.Tablespace != "" {

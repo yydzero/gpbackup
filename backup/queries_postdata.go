@@ -73,6 +73,28 @@ func (i IndexDefinition) FQN() string {
 	return utils.MakeFQN(i.OwningSchema, i.Name)
 }
 
+func (i IndexDefinition) TableFQN() string {
+	return utils.MakeFQN(i.OwningSchema, i.OwningTable)
+}
+
+func (i IndexDefinition) GetCreateStatement() string {
+
+	statement := ""
+	if !i.SupportsConstraint {
+		statement += fmt.Sprintf("\n\n%s;", i.Def)
+		if i.Tablespace != "" {
+			statement += fmt.Sprintf("\nALTER INDEX %s SET TABLESPACE %s;", i.FQN(), i.Tablespace)
+		}
+		if i.IsClustered {
+			statement += fmt.Sprintf("\nALTER TABLE %s CLUSTER ON %s;", i.TableFQN(), i.Name)
+		}
+		if i.IsReplicaIdentity {
+			statement += fmt.Sprintf("\nALTER TABLE %s REPLICA IDENTITY USING INDEX %s;", i.TableFQN(), i.Name)
+		}
+	}
+	return statement
+}
+
 /*
  * GetIndexes queries for all user and implicitly created indexes, since
  * implicitly created indexes could still have metadata to be backed up.

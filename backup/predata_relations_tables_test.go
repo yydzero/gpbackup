@@ -11,18 +11,53 @@ import (
 )
 
 var _ = Describe("backup/predata_relations tests", func() {
-	rowOne := backup.ColumnDefinition{Oid: 0, Num: 1, Name: "i", Type: "integer", StatTarget: -1}
-	rowTwo := backup.ColumnDefinition{Oid: 1, Num: 2, Name: "j", Type: "character varying(20)", StatTarget: -1}
+	rowOne := backup.ColumnDefinition{
+		Oid: 0,
+		Num: 1,
+		Name: "i",
+		Type: "integer",
+		StatTarget: -1,
+	}
+	rowTwo := backup.ColumnDefinition{
+		Oid: 1,
+		Num: 2,
+		Name: "j",
+		Type: "character varying(20)",
+		StatTarget: -1,
+	}
 
 	noMetadata := backup.ObjectMetadata{}
 
 	var testTable backup.Table
 	BeforeEach(func() {
 		tocfile, backupfile = testutils.InitializeTestTOC(buffer, "predata")
-		extTableEmpty := backup.ExternalTableDefinition{Oid: 0, Type: -2, Protocol: -2, Location: "", ExecLocation: "ALL_SEGMENTS", FormatType: "t", FormatOpts: "", Options: "", Command: "", RejectLimit: 0, RejectLimitType: "", ErrTableName: "", ErrTableSchema: "", Encoding: "UTF-8", Writable: false, URIs: nil}
+		extTableEmpty := backup.ExternalTableDefinition{
+			Oid: 0,
+			Type: -2,
+			Protocol: -2,
+			Location: "",
+			ExecLocation: "ALL_SEGMENTS",
+			FormatType: "t",
+			FormatOpts: "",
+			Options: "",
+			Command: "",
+			RejectLimit: 0,
+			RejectLimitType: "",
+			ErrTableName: "",
+			ErrTableSchema: "",
+			Encoding: "UTF-8",
+			Writable: false,
+			URIs: nil,
+		}
 		testTable = backup.Table{
 			Relation:        backup.Relation{Schema: "public", Name: "tablename"},
-			TableDefinition: backup.TableDefinition{DistPolicy: "DISTRIBUTED RANDOMLY", PartDef: "", PartTemplateDef: "", StorageOpts: "", ExtTableDef: extTableEmpty},
+			TableDefinition: backup.TableDefinition{
+				DistPolicy: "DISTRIBUTED RANDOMLY",
+				PartDef: "",
+				PartTemplateDef: "",
+				StorageOpts: "",
+				ExtTableDef: extTableEmpty,
+			},
 		}
 	})
 	Describe("PrintCreateTableStatement", func() {
@@ -65,7 +100,8 @@ ENCODING 'UTF-8';`)
 				testTable.ColumnDefs = col
 				testTable.TableType = "public.some_type"
 				backup.PrintRegularTableCreateStatement(backupfile, tocfile, testTable)
-				testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `CREATE TABLE public.tablename OF public.some_type (
+				testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+					`CREATE TABLE public.tablename OF public.some_type (
 	i WITH OPTIONS
 ) DISTRIBUTED RANDOMLY;`)
 			})
@@ -74,7 +110,8 @@ ENCODING 'UTF-8';`)
 				col := []backup.ColumnDefinition{rowOne}
 				testTable.ColumnDefs = col
 				backup.PrintRegularTableCreateStatement(backupfile, tocfile, testTable)
-				testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `CREATE TABLE public.tablename (
+				testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+					`CREATE TABLE public.tablename (
 	i integer
 ) DISTRIBUTED RANDOMLY;`)
 			})
@@ -82,7 +119,8 @@ ENCODING 'UTF-8';`)
 				col := []backup.ColumnDefinition{rowOne, rowTwo}
 				testTable.ColumnDefs = col
 				backup.PrintRegularTableCreateStatement(backupfile, tocfile, testTable)
-				testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `CREATE TABLE public.tablename (
+				testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+					`CREATE TABLE public.tablename (
 	i integer,
 	j character varying(20)
 ) DISTRIBUTED RANDOMLY;`)
@@ -90,7 +128,8 @@ ENCODING 'UTF-8';`)
 			It("prints a CREATE TABLE block with no attributes", func() {
 				testTable.ColumnDefs = []backup.ColumnDefinition{}
 				backup.PrintRegularTableCreateStatement(backupfile, tocfile, testTable)
-				testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `CREATE TABLE public.tablename (
+				testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+					`CREATE TABLE public.tablename (
 ) DISTRIBUTED RANDOMLY;`)
 			})
 		})
@@ -99,7 +138,8 @@ ENCODING 'UTF-8';`)
 				col := []backup.ColumnDefinition{rowOneEncoding, rowTwoEncoding}
 				testTable.ColumnDefs = col
 				backup.PrintRegularTableCreateStatement(backupfile, tocfile, testTable)
-				testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `CREATE TABLE public.tablename (
+				testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+					`CREATE TABLE public.tablename (
 	i integer ENCODING (compresstype=none,blocksize=32768,compresslevel=0),
 	j character varying(20) ENCODING (compresstype=zlib,blocksize=65536,compresslevel=1)
 ) DISTRIBUTED RANDOMLY;`)
@@ -108,7 +148,8 @@ ENCODING 'UTF-8';`)
 				col := []backup.ColumnDefinition{rowOne, rowNotNull}
 				testTable.ColumnDefs = col
 				backup.PrintRegularTableCreateStatement(backupfile, tocfile, testTable)
-				testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `CREATE TABLE public.tablename (
+				testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+					`CREATE TABLE public.tablename (
 	i integer,
 	j character varying(20) NOT NULL
 ) DISTRIBUTED RANDOMLY;`)
@@ -118,7 +159,8 @@ ENCODING 'UTF-8';`)
 				testTable.TableType = "public.some_type"
 				testTable.ColumnDefs = col
 				backup.PrintRegularTableCreateStatement(backupfile, tocfile, testTable)
-				testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `CREATE TABLE public.tablename OF public.some_type (
+				testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+					`CREATE TABLE public.tablename OF public.some_type (
 	i WITH OPTIONS,
 	j WITH OPTIONS NOT NULL
 ) DISTRIBUTED RANDOMLY;`)
@@ -127,7 +169,8 @@ ENCODING 'UTF-8';`)
 				col := []backup.ColumnDefinition{rowOneDef, rowTwo}
 				testTable.ColumnDefs = col
 				backup.PrintRegularTableCreateStatement(backupfile, tocfile, testTable)
-				testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `CREATE TABLE public.tablename (
+				testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+					`CREATE TABLE public.tablename (
 	i integer DEFAULT 42,
 	j character varying(20)
 ) DISTRIBUTED RANDOMLY;`)
@@ -136,7 +179,8 @@ ENCODING 'UTF-8';`)
 				col := []backup.ColumnDefinition{rowOneDef, rowTwoDef}
 				testTable.ColumnDefs = col
 				backup.PrintRegularTableCreateStatement(backupfile, tocfile, testTable)
-				testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `CREATE TABLE public.tablename (
+				testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+					`CREATE TABLE public.tablename (
 	i integer DEFAULT 42,
 	j character varying(20) DEFAULT 'bar'::text
 ) DISTRIBUTED RANDOMLY;`)
@@ -145,7 +189,8 @@ ENCODING 'UTF-8';`)
 				col := []backup.ColumnDefinition{rowOne, colWithCollation}
 				testTable.ColumnDefs = col
 				backup.PrintRegularTableCreateStatement(backupfile, tocfile, testTable)
-				testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `CREATE TABLE public.tablename (
+				testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+					`CREATE TABLE public.tablename (
 	i integer,
 	c character (8) COLLATE public.some_coll
 ) DISTRIBUTED RANDOMLY;`)
@@ -154,7 +199,8 @@ ENCODING 'UTF-8';`)
 				col := []backup.ColumnDefinition{rowStats}
 				testTable.ColumnDefs = col
 				backup.PrintRegularTableCreateStatement(backupfile, tocfile, testTable)
-				testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `CREATE TABLE public.tablename (
+				testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+					`CREATE TABLE public.tablename (
 	i integer
 ) DISTRIBUTED RANDOMLY;
 
@@ -164,7 +210,8 @@ ALTER TABLE ONLY public.tablename ALTER COLUMN i SET STATISTICS 3;`)
 				col := []backup.ColumnDefinition{colStorageType}
 				testTable.ColumnDefs = col
 				backup.PrintRegularTableCreateStatement(backupfile, tocfile, testTable)
-				testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `CREATE TABLE public.tablename (
+				testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+					`CREATE TABLE public.tablename (
 	i integer
 ) DISTRIBUTED RANDOMLY;
 
@@ -174,7 +221,8 @@ ALTER TABLE ONLY public.tablename ALTER COLUMN i SET STORAGE PLAIN;`)
 				col := []backup.ColumnDefinition{colOptions}
 				testTable.ColumnDefs = col
 				backup.PrintRegularTableCreateStatement(backupfile, tocfile, testTable)
-				testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `CREATE TABLE public.tablename (
+				testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+					`CREATE TABLE public.tablename (
 	i integer
 ) DISTRIBUTED RANDOMLY;
 
@@ -186,7 +234,8 @@ ALTER TABLE ONLY public.tablename ALTER COLUMN i SET (n_distinct=1);`)
 				col := []backup.ColumnDefinition{rowOneEncoding, rowEncodingNotNull}
 				testTable.ColumnDefs = col
 				backup.PrintRegularTableCreateStatement(backupfile, tocfile, testTable)
-				testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `CREATE TABLE public.tablename (
+				testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+					`CREATE TABLE public.tablename (
 	i integer ENCODING (compresstype=none,blocksize=32768,compresslevel=0),
 	j character varying(20) NOT NULL ENCODING (compresstype=zlib,blocksize=65536,compresslevel=1)
 ) DISTRIBUTED RANDOMLY;`)
@@ -195,7 +244,8 @@ ALTER TABLE ONLY public.tablename ALTER COLUMN i SET (n_distinct=1);`)
 				col := []backup.ColumnDefinition{rowOne, rowNotNullDef}
 				testTable.ColumnDefs = col
 				backup.PrintRegularTableCreateStatement(backupfile, tocfile, testTable)
-				testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `CREATE TABLE public.tablename (
+				testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+					`CREATE TABLE public.tablename (
 	i integer,
 	j character varying(20) DEFAULT 'bar'::text NOT NULL
 ) DISTRIBUTED RANDOMLY;`)
@@ -204,7 +254,8 @@ ALTER TABLE ONLY public.tablename ALTER COLUMN i SET (n_distinct=1);`)
 				col := []backup.ColumnDefinition{rowOneEncoding, rowTwoEncodingDef}
 				testTable.ColumnDefs = col
 				backup.PrintRegularTableCreateStatement(backupfile, tocfile, testTable)
-				testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `CREATE TABLE public.tablename (
+				testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+					`CREATE TABLE public.tablename (
 	i integer ENCODING (compresstype=none,blocksize=32768,compresslevel=0),
 	j character varying(20) DEFAULT 'bar'::text ENCODING (compresstype=zlib,blocksize=65536,compresslevel=1)
 ) DISTRIBUTED RANDOMLY;`)
@@ -213,7 +264,8 @@ ALTER TABLE ONLY public.tablename ALTER COLUMN i SET (n_distinct=1);`)
 				col := []backup.ColumnDefinition{rowOneEncoding, rowEncodingNotNullDef}
 				testTable.ColumnDefs = col
 				backup.PrintRegularTableCreateStatement(backupfile, tocfile, testTable)
-				testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `CREATE TABLE public.tablename (
+				testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+					`CREATE TABLE public.tablename (
 	i integer ENCODING (compresstype=none,blocksize=32768,compresslevel=0),
 	j character varying(20) DEFAULT 'bar'::text NOT NULL ENCODING (compresstype=zlib,blocksize=65536,compresslevel=1)
 ) DISTRIBUTED RANDOMLY;`)
@@ -235,7 +287,8 @@ ALTER TABLE ONLY public.tablename ALTER COLUMN i SET (n_distinct=1);`)
 			It("has a single-column distribution key", func() {
 				testTable.DistPolicy = distSingle
 				backup.PrintRegularTableCreateStatement(backupfile, tocfile, testTable)
-				testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `CREATE TABLE public.tablename (
+				testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+					`CREATE TABLE public.tablename (
 	i integer,
 	j character varying(20)
 ) DISTRIBUTED BY (i);`)
@@ -243,7 +296,8 @@ ALTER TABLE ONLY public.tablename ALTER COLUMN i SET (n_distinct=1);`)
 			It("has a multiple-column composite distribution key", func() {
 				testTable.DistPolicy = distComposite
 				backup.PrintRegularTableCreateStatement(backupfile, tocfile, testTable)
-				testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `CREATE TABLE public.tablename (
+				testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+					`CREATE TABLE public.tablename (
 	i integer,
 	j character varying(20)
 ) DISTRIBUTED BY (i, j);`)
@@ -251,7 +305,8 @@ ALTER TABLE ONLY public.tablename ALTER COLUMN i SET (n_distinct=1);`)
 			It("is an append-optimized table", func() {
 				testTable.StorageOpts = aoOpts
 				backup.PrintRegularTableCreateStatement(backupfile, tocfile, testTable)
-				testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `CREATE TABLE public.tablename (
+				testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+					`CREATE TABLE public.tablename (
 	i integer,
 	j character varying(20)
 ) WITH (appendonly=true) DISTRIBUTED RANDOMLY;`)
@@ -260,7 +315,8 @@ ALTER TABLE ONLY public.tablename ALTER COLUMN i SET (n_distinct=1);`)
 				testTable.DistPolicy = distSingle
 				testTable.StorageOpts = aoOpts
 				backup.PrintRegularTableCreateStatement(backupfile, tocfile, testTable)
-				testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `CREATE TABLE public.tablename (
+				testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+					`CREATE TABLE public.tablename (
 	i integer,
 	j character varying(20)
 ) WITH (appendonly=true) DISTRIBUTED BY (i);`)
@@ -269,7 +325,8 @@ ALTER TABLE ONLY public.tablename ALTER COLUMN i SET (n_distinct=1);`)
 				testTable.DistPolicy = distComposite
 				testTable.StorageOpts = aoOpts
 				backup.PrintRegularTableCreateStatement(backupfile, tocfile, testTable)
-				testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `CREATE TABLE public.tablename (
+				testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+					`CREATE TABLE public.tablename (
 	i integer,
 	j character varying(20)
 ) WITH (appendonly=true) DISTRIBUTED BY (i, j);`)
@@ -277,7 +334,8 @@ ALTER TABLE ONLY public.tablename ALTER COLUMN i SET (n_distinct=1);`)
 			It("is an append-optimized column-oriented table", func() {
 				testTable.StorageOpts = coOpts
 				backup.PrintRegularTableCreateStatement(backupfile, tocfile, testTable)
-				testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `CREATE TABLE public.tablename (
+				testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+					`CREATE TABLE public.tablename (
 	i integer,
 	j character varying(20)
 ) WITH (appendonly=true, orientation=column) DISTRIBUTED RANDOMLY;`)
@@ -286,7 +344,8 @@ ALTER TABLE ONLY public.tablename ALTER COLUMN i SET (n_distinct=1);`)
 				testTable.DistPolicy = distSingle
 				testTable.StorageOpts = coOpts
 				backup.PrintRegularTableCreateStatement(backupfile, tocfile, testTable)
-				testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `CREATE TABLE public.tablename (
+				testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+					`CREATE TABLE public.tablename (
 	i integer,
 	j character varying(20)
 ) WITH (appendonly=true, orientation=column) DISTRIBUTED BY (i);`)
@@ -295,7 +354,8 @@ ALTER TABLE ONLY public.tablename ALTER COLUMN i SET (n_distinct=1);`)
 				testTable.DistPolicy = distComposite
 				testTable.StorageOpts = coOpts
 				backup.PrintRegularTableCreateStatement(backupfile, tocfile, testTable)
-				testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `CREATE TABLE public.tablename (
+				testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+					`CREATE TABLE public.tablename (
 	i integer,
 	j character varying(20)
 ) WITH (appendonly=true, orientation=column) DISTRIBUTED BY (i, j);`)
@@ -303,7 +363,8 @@ ALTER TABLE ONLY public.tablename ALTER COLUMN i SET (n_distinct=1);`)
 			It("is a heap table with a fill factor", func() {
 				testTable.StorageOpts = heapFillOpts
 				backup.PrintRegularTableCreateStatement(backupfile, tocfile, testTable)
-				testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `CREATE TABLE public.tablename (
+				testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+					`CREATE TABLE public.tablename (
 	i integer,
 	j character varying(20)
 ) WITH (fillfactor=42) DISTRIBUTED RANDOMLY;`)
@@ -312,7 +373,8 @@ ALTER TABLE ONLY public.tablename ALTER COLUMN i SET (n_distinct=1);`)
 				testTable.DistPolicy = distSingle
 				testTable.StorageOpts = heapFillOpts
 				backup.PrintRegularTableCreateStatement(backupfile, tocfile, testTable)
-				testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `CREATE TABLE public.tablename (
+				testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+					`CREATE TABLE public.tablename (
 	i integer,
 	j character varying(20)
 ) WITH (fillfactor=42) DISTRIBUTED BY (i);`)
@@ -321,7 +383,8 @@ ALTER TABLE ONLY public.tablename ALTER COLUMN i SET (n_distinct=1);`)
 				testTable.DistPolicy = distComposite
 				testTable.StorageOpts = heapFillOpts
 				backup.PrintRegularTableCreateStatement(backupfile, tocfile, testTable)
-				testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `CREATE TABLE public.tablename (
+				testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+					`CREATE TABLE public.tablename (
 	i integer,
 	j character varying(20)
 ) WITH (fillfactor=42) DISTRIBUTED BY (i, j);`)
@@ -329,7 +392,8 @@ ALTER TABLE ONLY public.tablename ALTER COLUMN i SET (n_distinct=1);`)
 			It("is an append-optimized column-oriented table with complex storage options", func() {
 				testTable.StorageOpts = coManyOpts
 				backup.PrintRegularTableCreateStatement(backupfile, tocfile, testTable)
-				testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `CREATE TABLE public.tablename (
+				testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+					`CREATE TABLE public.tablename (
 	i integer,
 	j character varying(20)
 ) WITH (appendonly=true, orientation=column, fillfactor=42, compresstype=zlib, blocksize=32768, compresslevel=1) DISTRIBUTED RANDOMLY;`)
@@ -338,7 +402,8 @@ ALTER TABLE ONLY public.tablename ALTER COLUMN i SET (n_distinct=1);`)
 				testTable.DistPolicy = distSingle
 				testTable.StorageOpts = coManyOpts
 				backup.PrintRegularTableCreateStatement(backupfile, tocfile, testTable)
-				testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `CREATE TABLE public.tablename (
+				testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+					`CREATE TABLE public.tablename (
 	i integer,
 	j character varying(20)
 ) WITH (appendonly=true, orientation=column, fillfactor=42, compresstype=zlib, blocksize=32768, compresslevel=1) DISTRIBUTED BY (i);`)
@@ -347,7 +412,8 @@ ALTER TABLE ONLY public.tablename ALTER COLUMN i SET (n_distinct=1);`)
 				testTable.DistPolicy = distComposite
 				testTable.StorageOpts = coManyOpts
 				backup.PrintRegularTableCreateStatement(backupfile, tocfile, testTable)
-				testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `CREATE TABLE public.tablename (
+				testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+					`CREATE TABLE public.tablename (
 	i integer,
 	j character varying(20)
 ) WITH (appendonly=true, orientation=column, fillfactor=42, compresstype=zlib, blocksize=32768, compresslevel=1) DISTRIBUTED BY (i, j);`)
@@ -368,7 +434,8 @@ ALTER TABLE ONLY public.tablename ALTER COLUMN i SET (n_distinct=1);`)
 			})
 			It("is a partition table with no table attributes", func() {
 				backup.PrintRegularTableCreateStatement(backupfile, tocfile, testTable)
-				testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `CREATE TABLE public.tablename (
+				testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+					`CREATE TABLE public.tablename (
 	i integer,
 	j character varying(20)
 ) DISTRIBUTED RANDOMLY PARTITION BY LIST(gender)
@@ -381,7 +448,8 @@ ALTER TABLE ONLY public.tablename ALTER COLUMN i SET (n_distinct=1);`)
 			It("is a partition table with table attributes", func() {
 				testTable.StorageOpts = "appendonly=true, orientation=column"
 				backup.PrintRegularTableCreateStatement(backupfile, tocfile, testTable)
-				testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `CREATE TABLE public.tablename (
+				testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+					`CREATE TABLE public.tablename (
 	i integer,
 	j character varying(20)
 ) WITH (appendonly=true, orientation=column) DISTRIBUTED RANDOMLY PARTITION BY LIST(gender)
@@ -403,7 +471,8 @@ SET SUBPARTITION TEMPLATE
 `
 				testTable.PartTemplateDef = partTemplateDef
 				backup.PrintRegularTableCreateStatement(backupfile, tocfile, testTable)
-				testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `CREATE TABLE public.tablename (
+				testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+					`CREATE TABLE public.tablename (
 	i integer,
 	j character varying(20)
 ) DISTRIBUTED RANDOMLY PARTITION BY LIST(gender)
@@ -426,7 +495,8 @@ SET SUBPARTITION TEMPLATE
 			It("prints a CREATE TABLE block with a TABLESPACE clause", func() {
 				testTable.TablespaceName = "test_tablespace"
 				backup.PrintRegularTableCreateStatement(backupfile, tocfile, testTable)
-				testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `CREATE TABLE public.tablename (
+				testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+					`CREATE TABLE public.tablename (
 ) TABLESPACE test_tablespace DISTRIBUTED RANDOMLY;`)
 			})
 		})
@@ -436,7 +506,8 @@ SET SUBPARTITION TEMPLATE
 				testTable.ColumnDefs = col
 				testTable.Inherits = []string{"public.parent"}
 				backup.PrintRegularTableCreateStatement(backupfile, tocfile, testTable)
-				testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `CREATE TABLE public.tablename (
+				testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+					`CREATE TABLE public.tablename (
 	i integer
 ) INHERITS (public.parent) DISTRIBUTED RANDOMLY;`)
 			})
@@ -445,7 +516,8 @@ SET SUBPARTITION TEMPLATE
 				testTable.ColumnDefs = col
 				testTable.Inherits = []string{"public.parent_one", "public.parent_two"}
 				backup.PrintRegularTableCreateStatement(backupfile, tocfile, testTable)
-				testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `CREATE TABLE public.tablename (
+				testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+					`CREATE TABLE public.tablename (
 	i integer,
 	j character varying(20)
 ) INHERITS (public.parent_one, public.parent_two) DISTRIBUTED RANDOMLY;`)
@@ -461,7 +533,8 @@ SET SUBPARTITION TEMPLATE
 				foreignTable := backup.ForeignTableDefinition{Options: "", Server: "fs"}
 				testTable.ForeignDef = foreignTable
 				backup.PrintRegularTableCreateStatement(backupfile, tocfile, testTable)
-				testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `CREATE FOREIGN TABLE public.tablename (
+				testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+					`CREATE FOREIGN TABLE public.tablename (
 	i integer,
 	j character varying(20)
 ) SERVER fs ;`)
@@ -472,19 +545,28 @@ SET SUBPARTITION TEMPLATE
 				foreignTable := backup.ForeignTableDefinition{Options: "delimiter=',' quote='\"'", Server: "fs"}
 				testTable.ForeignDef = foreignTable
 				backup.PrintRegularTableCreateStatement(backupfile, tocfile, testTable)
-				testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `CREATE FOREIGN TABLE public.tablename (
+				testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+					`CREATE FOREIGN TABLE public.tablename (
 	i integer,
 	j character varying(20)
 ) SERVER fs OPTIONS (delimiter=',' quote='"') ;`)
 			})
 			It("prints a CREATE TABLE block with foreign data options on attributes", func() {
-				rowWithFdwOptions := backup.ColumnDefinition{Oid: 0, Num: 1, Name: "i", Type: "integer", StatTarget: -1, FdwOptions: "option1 'val1', option2 'val2'"}
+				rowWithFdwOptions := backup.ColumnDefinition{
+					Oid: 0,
+					Num: 1,
+					Name: "i",
+					Type: "integer",
+					StatTarget: -1,
+					FdwOptions: "option1 'val1', option2 'val2'",
+				}
 				col := []backup.ColumnDefinition{rowWithFdwOptions, rowTwo}
 				testTable.ColumnDefs = col
 				foreignTable := backup.ForeignTableDefinition{Server: "fs"}
 				testTable.ForeignDef = foreignTable
 				backup.PrintRegularTableCreateStatement(backupfile, tocfile, testTable)
-				testutils.AssertBufferContents(tocfile.PredataEntries, buffer, `CREATE FOREIGN TABLE public.tablename (
+				testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
+					`CREATE FOREIGN TABLE public.tablename (
 	i integer OPTIONS (option1 'val1', option2 'val2'),
 	j character varying(20)
 ) SERVER fs ;`)
@@ -492,8 +574,22 @@ SET SUBPARTITION TEMPLATE
 		})
 	})
 	Describe("PrintPostCreateTableStatements", func() {
-		rowCommentOne := backup.ColumnDefinition{Oid: 0, Num: 1, Name: "i", Type: "integer", StatTarget: -1, Comment: "This is a column comment."}
-		rowCommentTwo := backup.ColumnDefinition{Oid: 0, Num: 2, Name: "j", Type: "integer", StatTarget: -1, Comment: "This is another column comment."}
+		rowCommentOne := backup.ColumnDefinition{
+			Oid: 0,
+			Num: 1,
+			Name: "i",
+			Type: "integer",
+			StatTarget: -1,
+			Comment: "This is a column comment.",
+		}
+		rowCommentTwo := backup.ColumnDefinition{
+			Oid: 0,
+			Num: 2,
+			Name: "j",
+			Type: "integer",
+			StatTarget: -1,
+			Comment: "This is another column comment.",
+		}
 
 		It("does not print default replica identity statement", func() {
 			testTable.ReplicaIdentity = "d"
@@ -523,7 +619,8 @@ SET SUBPARTITION TEMPLATE
 		It("prints a block with a table comment", func() {
 			col := []backup.ColumnDefinition{rowOne}
 			testTable.ColumnDefs = col
-			tableMetadata := testutils.DefaultMetadata("TABLE", false, false, true, false)
+			tableMetadata := testutils.DefaultMetadata("TABLE", false,
+				false, true, false)
 			backup.PrintPostCreateTableStatements(backupfile, tocfile, testTable, tableMetadata)
 			testhelper.ExpectRegexp(buffer, `
 
@@ -538,8 +635,14 @@ COMMENT ON TABLE public.tablename IS 'This is a table comment.';`)
 COMMENT ON COLUMN public.tablename.i IS 'This is a column comment.';`)
 		})
 		It("prints a block with a single column comment containing special characters", func() {
-			rowCommentSpecialCharacters := backup.ColumnDefinition{Oid: 0, Num: 1, Name: "i", Type: "integer", StatTarget: -1, Comment: `This is a ta'ble 1+=;,./\>,<@\\n^comment.`}
-
+			rowCommentSpecialCharacters := backup.ColumnDefinition{
+				Oid: 0,
+				Num: 1,
+				Name: "i",
+				Type: "integer",
+				StatTarget: -1,
+				Comment: `This is a ta'ble 1+=;,./\>,<@\\n^comment.`,
+			}
 			col := []backup.ColumnDefinition{rowCommentSpecialCharacters}
 			testTable.ColumnDefs = col
 			backup.PrintPostCreateTableStatements(backupfile, tocfile, testTable, noMetadata)
@@ -570,7 +673,8 @@ ALTER TABLE public.tablename OWNER TO testrole;`)
 		It("prints a SECURITY LABEL statement for the table", func() {
 			col := []backup.ColumnDefinition{rowOne}
 			testTable.ColumnDefs = col
-			tableMetadata := testutils.DefaultMetadata("TABLE", false, false, false, true)
+			tableMetadata := testutils.DefaultMetadata("TABLE", false,
+				false, false, true)
 			backup.PrintPostCreateTableStatements(backupfile, tocfile, testTable, tableMetadata)
 			testhelper.ExpectRegexp(buffer, `
 
@@ -579,7 +683,8 @@ SECURITY LABEL FOR dummy ON TABLE public.tablename IS 'unclassified';`)
 		It("does not print an ALTER TABLE... REPLICA IDENTITY for foreign tables", func() {
 			testTable.ForeignDef = backup.ForeignTableDefinition{Options: "", Server: "fs"}
 			testTable.ReplicaIdentity = "n"
-			tableMetadata := testutils.DefaultMetadata("FOREIGN TABLE", true, true, true, true)
+			tableMetadata := testutils.DefaultMetadata("FOREIGN TABLE",
+				true, true, true, true)
 			backup.PrintPostCreateTableStatements(backupfile, tocfile, testTable, tableMetadata)
 			testhelper.NotExpectRegexp(buffer, `REPLICA IDENTITY`)
 		})
@@ -587,7 +692,8 @@ SECURITY LABEL FOR dummy ON TABLE public.tablename IS 'unclassified';`)
 			col := []backup.ColumnDefinition{rowOne}
 			testTable.ColumnDefs = col
 			testTable.ForeignDef = backup.ForeignTableDefinition{Options: "", Server: "fs"}
-			tableMetadata := testutils.DefaultMetadata("FOREIGN TABLE", true, true, true, true)
+			tableMetadata := testutils.DefaultMetadata("FOREIGN TABLE",
+				true, true, true, true)
 			backup.PrintPostCreateTableStatements(backupfile, tocfile, testTable, tableMetadata)
 			testhelper.ExpectRegexp(buffer, `
 
@@ -623,8 +729,22 @@ COMMENT ON COLUMN public.tablename.i IS 'This is a column comment.';
 COMMENT ON COLUMN public.tablename.j IS 'This is another column comment.';`)
 		})
 		It("prints a GRANT statement on a table column", func() {
-			privilegesColumnOne := backup.ColumnDefinition{Oid: 0, Num: 1, Name: "i", Type: "integer", StatTarget: -1, Privileges: sql.NullString{String: "testrole=r/testrole", Valid: true}}
-			privilegesColumnTwo := backup.ColumnDefinition{Oid: 1, Num: 2, Name: "j", Type: "character varying(20)", StatTarget: -1, Privileges: sql.NullString{String: "testrole2=arwx/testrole2", Valid: true}}
+			privilegesColumnOne := backup.ColumnDefinition{
+				Oid: 0,
+				Num: 1,
+				Name: "i",
+				Type: "integer",
+				StatTarget: -1,
+				Privileges: sql.NullString{String: "testrole=r/testrole", Valid: true},
+			}
+			privilegesColumnTwo := backup.ColumnDefinition{
+				Oid: 1,
+				Num: 2,
+				Name: "j",
+				Type: "character varying(20)",
+				StatTarget: -1,
+				Privileges: sql.NullString{String: "testrole2=arwx/testrole2", Valid: true},
+			}
 			col := []backup.ColumnDefinition{privilegesColumnOne, privilegesColumnTwo}
 			testTable.ColumnDefs = col
 			tableMetadata := backup.ObjectMetadata{Owner: "testrole"}
@@ -644,8 +764,24 @@ REVOKE ALL (j) ON TABLE public.tablename FROM testrole;
 GRANT ALL (j) ON TABLE public.tablename TO testrole2;`)
 		})
 		It("prints a security group statement on a table column", func() {
-			privilegesColumnOne := backup.ColumnDefinition{Oid: 0, Num: 1, Name: "i", Type: "integer", StatTarget: -1, SecurityLabelProvider: "dummy", SecurityLabel: "unclassified"}
-			privilegesColumnTwo := backup.ColumnDefinition{Oid: 1, Num: 2, Name: "j", Type: "character varying(20)", StatTarget: -1, SecurityLabelProvider: "dummy", SecurityLabel: "unclassified"}
+			privilegesColumnOne := backup.ColumnDefinition{
+				Oid: 0,
+				Num: 1,
+				Name: "i",
+				Type: "integer",
+				StatTarget: -1,
+				SecurityLabelProvider: "dummy",
+				SecurityLabel: "unclassified",
+			}
+			privilegesColumnTwo := backup.ColumnDefinition{
+				Oid: 1,
+				Num: 2,
+				Name: "j",
+				Type: "character varying(20)",
+				StatTarget: -1,
+				SecurityLabelProvider: "dummy",
+				SecurityLabel: "unclassified",
+			}
 			col := []backup.ColumnDefinition{privilegesColumnOne, privilegesColumnTwo}
 			testTable.ColumnDefs = col
 			backup.PrintPostCreateTableStatements(backupfile, tocfile, testTable, backup.ObjectMetadata{})

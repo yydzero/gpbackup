@@ -264,11 +264,43 @@ ALTER DEFAULT PRIVILEGES FOR ROLE testrole GRANT USAGE ON TABLES TO somerole WIT
 		})
 	})
 	Describe("ConstructMetadataMap", func() {
-		object1A := backup.MetadataQueryStruct{UniqueID: backup.UniqueID{Oid: 1}, Privileges: sql.NullString{String: "gpadmin=r/gpadmin", Valid: true}, Kind: "", Owner: "testrole", Comment: ""}
-		object1B := backup.MetadataQueryStruct{UniqueID: backup.UniqueID{Oid: 1}, Privileges: sql.NullString{String: "testrole=r/testrole", Valid: true}, Kind: "", Owner: "testrole", Comment: ""}
-		object2 := backup.MetadataQueryStruct{UniqueID: backup.UniqueID{Oid: 2}, Privileges: sql.NullString{String: "testrole=r/testrole", Valid: true}, Kind: "", Owner: "testrole", Comment: "this is a comment", SecurityLabelProvider: "some_provider", SecurityLabel: "some_label"}
-		objectDefaultKind := backup.MetadataQueryStruct{UniqueID: backup.UniqueID{Oid: 3}, Privileges: sql.NullString{String: "", Valid: false}, Kind: "Default", Owner: "testrole", Comment: ""}
-		objectEmptyKind := backup.MetadataQueryStruct{UniqueID: backup.UniqueID{Oid: 4}, Privileges: sql.NullString{String: "", Valid: false}, Kind: "Empty", Owner: "testrole", Comment: ""}
+		object1A := backup.MetadataQueryStruct{
+			UniqueID: backup.UniqueID{Oid: 1},
+			Privileges: sql.NullString{String: "gpadmin=r/gpadmin", Valid: true},
+			Kind: "",
+			Owner: "testrole",
+			Comment: "",
+		}
+		object1B := backup.MetadataQueryStruct{
+			UniqueID: backup.UniqueID{Oid: 1},
+			Privileges: sql.NullString{String: "testrole=r/testrole", Valid: true},
+			Kind: "",
+			Owner: "testrole",
+			Comment: "",
+		}
+		object2 := backup.MetadataQueryStruct{
+			UniqueID: backup.UniqueID{Oid: 2},
+			Privileges: sql.NullString{String: "testrole=r/testrole", Valid: true},
+			Kind: "",
+			Owner: "testrole",
+			Comment: "this is a comment",
+			SecurityLabelProvider: "some_provider",
+			SecurityLabel: "some_label",
+		}
+		objectDefaultKind := backup.MetadataQueryStruct{
+			UniqueID: backup.UniqueID{Oid: 3},
+			Privileges: sql.NullString{String: "", Valid: false},
+			Kind: "Default",
+			Owner: "testrole",
+			Comment: "",
+		}
+		objectEmptyKind := backup.MetadataQueryStruct{
+			UniqueID: backup.UniqueID{Oid: 4},
+			Privileges: sql.NullString{String: "", Valid: false},
+			Kind: "Empty",
+			Owner: "testrole",
+			Comment: "",
+		}
 		var metadataList []backup.MetadataQueryStruct
 		BeforeEach(func() {
 			rolnames := sqlmock.NewRows([]string{"rolename", "quotedrolename"}).
@@ -285,7 +317,13 @@ ALTER DEFAULT PRIVILEGES FOR ROLE testrole GRANT USAGE ON TABLES TO somerole WIT
 		It("One object", func() {
 			metadataList = []backup.MetadataQueryStruct{object2}
 			metadataMap := backup.ConstructMetadataMap(metadataList)
-			expectedObjectMetadata := backup.ObjectMetadata{Privileges: []backup.ACL{{Grantee: "testrole", Select: true}}, Owner: "testrole", Comment: "this is a comment", SecurityLabelProvider: "some_provider", SecurityLabel: "some_label"}
+			expectedObjectMetadata := backup.ObjectMetadata{
+				Privileges: []backup.ACL{{Grantee: "testrole", Select: true}},
+				Owner: "testrole",
+				Comment: "this is a comment",
+				SecurityLabelProvider: "some_provider",
+				SecurityLabel: "some_label",
+			}
 			Expect(metadataMap).To(HaveLen(1))
 			Expect(metadataMap[backup.UniqueID{Oid: 2}]).To(Equal(expectedObjectMetadata))
 
@@ -293,15 +331,30 @@ ALTER DEFAULT PRIVILEGES FOR ROLE testrole GRANT USAGE ON TABLES TO somerole WIT
 		It("One object with two ACL entries", func() {
 			metadataList = []backup.MetadataQueryStruct{object1A, object1B}
 			metadataMap := backup.ConstructMetadataMap(metadataList)
-			expectedObjectMetadata := backup.ObjectMetadata{Privileges: []backup.ACL{{Grantee: "gpadmin", Select: true}, {Grantee: "testrole", Select: true}}, Owner: "testrole"}
+			expectedObjectMetadata := backup.ObjectMetadata{
+				Privileges: []backup.ACL{
+					{Grantee: "gpadmin", Select: true},
+					{Grantee: "testrole", Select: true},
+				}, Owner: "testrole"}
 			Expect(metadataMap).To(HaveLen(1))
 			Expect(metadataMap[backup.UniqueID{Oid: 1}]).To(Equal(expectedObjectMetadata))
 		})
 		It("Multiple objects", func() {
 			metadataList = []backup.MetadataQueryStruct{object1A, object1B, object2}
 			metadataMap := backup.ConstructMetadataMap(metadataList)
-			expectedObjectMetadataOne := backup.ObjectMetadata{Privileges: []backup.ACL{{Grantee: "gpadmin", Select: true}, {Grantee: "testrole", Select: true}}, Owner: "testrole"}
-			expectedObjectMetadataTwo := backup.ObjectMetadata{Privileges: []backup.ACL{{Grantee: "testrole", Select: true}}, Owner: "testrole", Comment: "this is a comment", SecurityLabelProvider: "some_provider", SecurityLabel: "some_label"}
+			expectedObjectMetadataOne := backup.ObjectMetadata{
+				Privileges: []backup.ACL{
+					{Grantee: "gpadmin", Select: true},
+					{Grantee: "testrole", Select: true},
+				}, Owner: "testrole"}
+			expectedObjectMetadataTwo := backup.ObjectMetadata{
+				Privileges: []backup.ACL{
+					{Grantee: "testrole", Select: true},
+				}, Owner: "testrole",
+				Comment: "this is a comment",
+				SecurityLabelProvider: "some_provider",
+				SecurityLabel: "some_label",
+			}
 			Expect(metadataMap).To(HaveLen(2))
 			Expect(metadataMap[backup.UniqueID{Oid: 1}]).To(Equal(expectedObjectMetadataOne))
 			Expect(metadataMap[backup.UniqueID{Oid: 2}]).To(Equal(expectedObjectMetadataTwo))
@@ -361,15 +414,36 @@ ALTER DEFAULT PRIVILEGES FOR ROLE testrole GRANT USAGE ON TABLES TO somerole WIT
 		})
 		It("parses an ACL string containing a role with some privileges with GRANT and some without including GRANT", func() {
 			aclStr := "testrole=ar*w*d*tXUCTc/gpadmin"
-			expected := backup.ACL{Grantee: "testrole", Insert: true, SelectWithGrant: true, UpdateWithGrant: true,
-				DeleteWithGrant: true, Trigger: true, Execute: true, Usage: true, Create: true, Temporary: true, Connect: true}
+			expected := backup.ACL{
+				Grantee: "testrole",
+				Insert: true,
+				SelectWithGrant: true,
+				UpdateWithGrant: true,
+				DeleteWithGrant: true,
+				Trigger: true,
+				Execute: true,
+				Usage: true,
+				Create: true,
+				Temporary: true,
+				Connect: true,
+			}
 			result := backup.ParseACL(aclStr)
 			structmatcher.ExpectStructsToMatch(&expected, result)
 		})
 		It("parses an ACL string containing a role with all privileges including GRANT", func() {
 			aclStr := "testrole=a*D*x*t*X*U*C*T*c*/gpadmin"
-			expected := backup.ACL{Grantee: "testrole", InsertWithGrant: true, TruncateWithGrant: true, ReferencesWithGrant: true,
-				TriggerWithGrant: true, ExecuteWithGrant: true, UsageWithGrant: true, CreateWithGrant: true, TemporaryWithGrant: true, ConnectWithGrant: true}
+			expected := backup.ACL{
+				Grantee: "testrole",
+				InsertWithGrant: true,
+				TruncateWithGrant: true,
+				ReferencesWithGrant: true,
+				TriggerWithGrant: true,
+				ExecuteWithGrant: true,
+				UsageWithGrant: true,
+				CreateWithGrant: true,
+				TemporaryWithGrant: true,
+				ConnectWithGrant: true,
+			}
 			result := backup.ParseACL(aclStr)
 			structmatcher.ExpectStructsToMatch(&expected, result)
 		})
@@ -381,11 +455,46 @@ ALTER DEFAULT PRIVILEGES FOR ROLE testrole GRANT USAGE ON TABLES TO somerole WIT
 		})
 	})
 	Describe("ConstructDefaultPrivileges", func() {
-		object1A := backup.DefaultPrivilegesQueryStruct{Oid: 1, Owner: "testrole", Schema: "myschema", Kind: "", ObjectType: "r", Privileges: sql.NullString{String: "gpadmin=r/gpadmin", Valid: true}}
-		object1B := backup.DefaultPrivilegesQueryStruct{Oid: 1, Owner: "testrole", Schema: "myschema", Kind: "", ObjectType: "r", Privileges: sql.NullString{String: "testrole=r/testrole", Valid: true}}
-		object2 := backup.DefaultPrivilegesQueryStruct{Oid: 2, Owner: "testrole", Schema: "myschema", Kind: "", ObjectType: "S", Privileges: sql.NullString{String: "testrole=r/testrole", Valid: true}}
-		objectDefaultKind := backup.DefaultPrivilegesQueryStruct{Oid: 3, Owner: "testrole", Schema: "", Kind: "Default", ObjectType: "T", Privileges: sql.NullString{String: "", Valid: false}}
-		objectEmptyKind := backup.DefaultPrivilegesQueryStruct{Oid: 4, Owner: "testrole", Schema: "", Kind: "Empty", ObjectType: "f", Privileges: sql.NullString{String: "", Valid: false}}
+		object1A := backup.DefaultPrivilegesQueryStruct{
+			Oid: 1,
+			Owner: "testrole",
+			Schema: "myschema",
+			Kind: "",
+			ObjectType: "r",
+			Privileges: sql.NullString{String: "gpadmin=r/gpadmin", Valid: true},
+		}
+		object1B := backup.DefaultPrivilegesQueryStruct{
+			Oid: 1,
+			Owner: "testrole",
+			Schema: "myschema",
+			Kind: "",
+			ObjectType: "r",
+			Privileges: sql.NullString{String: "testrole=r/testrole", Valid: true},
+		}
+		object2 := backup.DefaultPrivilegesQueryStruct{
+			Oid: 2,
+			Owner: "testrole",
+			Schema: "myschema",
+			Kind: "",
+			ObjectType: "S",
+			Privileges: sql.NullString{String: "testrole=r/testrole", Valid: true},
+		}
+		objectDefaultKind := backup.DefaultPrivilegesQueryStruct{
+			Oid: 3,
+			Owner: "testrole",
+			Schema: "",
+			Kind: "Default",
+			ObjectType: "T",
+			Privileges: sql.NullString{String: "", Valid: false},
+		}
+		objectEmptyKind := backup.DefaultPrivilegesQueryStruct{
+			Oid: 4,
+			Owner: "testrole",
+			Schema: "",
+			Kind: "Empty",
+			ObjectType: "f",
+			Privileges: sql.NullString{String: "", Valid: false},
+		}
 		var privilegesQuerylist []backup.DefaultPrivilegesQueryStruct
 		BeforeEach(func() {
 			rolnames := sqlmock.NewRows([]string{"rolename", "quotedrolename"}).
@@ -402,22 +511,44 @@ ALTER DEFAULT PRIVILEGES FOR ROLE testrole GRANT USAGE ON TABLES TO somerole WIT
 		It("constructs a single sequence default privilege in a specific schema", func() {
 			privilegesQuerylist = []backup.DefaultPrivilegesQueryStruct{object2}
 			privilegesList := backup.ConstructDefaultPrivileges(privilegesQuerylist)
-			expectedDefaultPrivileges := backup.DefaultPrivileges{Privileges: []backup.ACL{{Grantee: "testrole", Select: true}}, Owner: "testrole", Schema: "myschema", ObjectType: "S"}
+			expectedDefaultPrivileges := backup.DefaultPrivileges{
+				Privileges: []backup.ACL{{Grantee: "testrole", Select: true}},
+				Owner: "testrole",
+				Schema: "myschema",
+				ObjectType: "S",
+			}
 			Expect(privilegesList).To(HaveLen(1))
 			Expect(privilegesList[0]).To(Equal(expectedDefaultPrivileges))
 		})
 		It("constructs multiple default privileges on a single relation in a specific schema", func() {
 			privilegesQuerylist = []backup.DefaultPrivilegesQueryStruct{object1A, object1B}
 			privilegesList := backup.ConstructDefaultPrivileges(privilegesQuerylist)
-			expectedObjectMetadata := backup.DefaultPrivileges{Privileges: []backup.ACL{{Grantee: "gpadmin", Select: true}, {Grantee: "testrole", Select: true}}, Owner: "testrole", Schema: "myschema", ObjectType: "r"}
+			expectedObjectMetadata := backup.DefaultPrivileges{
+				Privileges: []backup.ACL{{Grantee: "gpadmin", Select: true},
+					{Grantee: "testrole", Select: true}},
+					Owner: "testrole",
+					Schema: "myschema",
+					ObjectType: "r",
+			}
 			Expect(privilegesList).To(HaveLen(1))
 			Expect(privilegesList[0]).To(Equal(expectedObjectMetadata))
 		})
 		It("constructs multiple default privileges on multiple objects in a specific schema", func() {
 			privilegesQuerylist = []backup.DefaultPrivilegesQueryStruct{object1A, object1B, object2}
 			privilegesList := backup.ConstructDefaultPrivileges(privilegesQuerylist)
-			expectedObjectMetadataOne := backup.DefaultPrivileges{Privileges: []backup.ACL{{Grantee: "gpadmin", Select: true}, {Grantee: "testrole", Select: true}}, Owner: "testrole", Schema: "myschema", ObjectType: "r"}
-			expectedObjectMetadataTwo := backup.DefaultPrivileges{Privileges: []backup.ACL{{Grantee: "testrole", Select: true}}, Owner: "testrole", Schema: "myschema", ObjectType: "S"}
+			expectedObjectMetadataOne := backup.DefaultPrivileges{
+				Privileges: []backup.ACL{{Grantee: "gpadmin", Select: true},
+					{Grantee: "testrole", Select: true}},
+					Owner: "testrole",
+					Schema: "myschema",
+					ObjectType: "r",
+			}
+			expectedObjectMetadataTwo := backup.DefaultPrivileges{
+				Privileges: []backup.ACL{{Grantee: "testrole", Select: true}},
+				Owner: "testrole",
+				Schema: "myschema",
+				ObjectType: "S",
+			}
 			Expect(privilegesList).To(HaveLen(2))
 			Expect(privilegesList[0]).To(Equal(expectedObjectMetadataOne))
 			Expect(privilegesList[1]).To(Equal(expectedObjectMetadataTwo))
@@ -425,14 +556,24 @@ ALTER DEFAULT PRIVILEGES FOR ROLE testrole GRANT USAGE ON TABLES TO somerole WIT
 		It("constructs a default privilege for a type with a 'Default' kind", func() {
 			privilegesQuerylist = []backup.DefaultPrivilegesQueryStruct{objectDefaultKind}
 			privilegesList := backup.ConstructDefaultPrivileges(privilegesQuerylist)
-			expectedObjectMetadata := backup.DefaultPrivileges{Privileges: []backup.ACL{}, Owner: "testrole", Schema: "", ObjectType: "T"}
+			expectedObjectMetadata := backup.DefaultPrivileges{
+				Privileges: []backup.ACL{},
+				Owner: "testrole",
+				Schema: "",
+				ObjectType: "T",
+			}
 			Expect(privilegesList).To(HaveLen(1))
 			Expect(privilegesList[0]).To(Equal(expectedObjectMetadata))
 		})
 		It("constructs a default privilege for a function with an 'Empty' kind", func() {
 			privilegesQuerylist = []backup.DefaultPrivilegesQueryStruct{objectEmptyKind}
 			privilegesList := backup.ConstructDefaultPrivileges(privilegesQuerylist)
-			expectedObjectMetadata := backup.DefaultPrivileges{Privileges: []backup.ACL{{Grantee: "GRANTEE"}}, Owner: "testrole", Schema: "", ObjectType: "f"}
+			expectedObjectMetadata := backup.DefaultPrivileges{
+				Privileges: []backup.ACL{{Grantee: "GRANTEE"}},
+				Owner: "testrole",
+				Schema: "",
+				ObjectType: "f",
+			}
 			Expect(privilegesList).To(HaveLen(1))
 			Expect(privilegesList[0]).To(Equal(expectedObjectMetadata))
 		})

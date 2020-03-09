@@ -299,6 +299,11 @@ func (v View) FQN() string {
 	return utils.MakeFQN(v.Schema, v.Name)
 }
 
+func (v View) GetCreateStatement() string {
+	// Option's keyword WITH is expected to be prepended to its options in the SQL statement
+	return fmt.Sprintf("\n\nCREATE VIEW %s%s AS %s\n", v.FQN(), v.Options, v.Definition)
+}
+
 // This function retrieves both regular views and materialized views.
 // Materialized views were introduced in GPDB 7 and backported to GPDB 6.2.
 func GetAllViews(connectionPool *dbconn.DBConn) (regularViews []View, materializedViews []MaterializedView) {

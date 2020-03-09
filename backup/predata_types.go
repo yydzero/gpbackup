@@ -15,7 +15,8 @@ import (
  * Functions to print to the predata file
  */
 
-func PrintCreateTypeStatements(metadataFile *utils.FileWithByteCount, tocfile *toc.TOC, shellTypes []ShellType, baseTypes []BaseType, rangeTypes []RangeType) {
+func PrintCreateTypeStatements(metadataFile *utils.FileWithByteCount,
+	tocfile *toc.TOC, shellTypes []ShellType, baseTypes []BaseType, rangeTypes []RangeType) {
 	metadataFile.MustPrintf("\n\n")
 
 	types := make([]toc.TOCObjectWithMetadata, 0)
@@ -38,7 +39,8 @@ func PrintCreateTypeStatements(metadataFile *utils.FileWithByteCount, tocfile *t
 	}
 }
 
-func PrintCreateDomainStatement(metadataFile *utils.FileWithByteCount, toc *toc.TOC, domain Domain, typeMetadata ObjectMetadata) {
+func PrintCreateDomainStatement(metadataFile *utils.FileWithByteCount,
+	toc *toc.TOC, domain Domain, typeMetadata ObjectMetadata) {
 	start := metadataFile.ByteCount
 	metadataFile.MustPrintf(domain.GetCreateStatement())
 

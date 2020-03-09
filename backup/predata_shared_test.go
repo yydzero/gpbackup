@@ -23,12 +23,60 @@ var _ = Describe("backup/predata_shared tests", func() {
 			emptyMetadataMap backup.MetadataMap
 		)
 		BeforeEach(func() {
-			uniqueOne = backup.Constraint{Oid: 1, Name: "tablename_i_key", ConType: "u", ConDef: "UNIQUE (i)", OwningObject: "public.tablename", IsDomainConstraint: false, IsPartitionParent: false}
-			uniqueTwo = backup.Constraint{Oid: 0, Name: "tablename_j_key", ConType: "u", ConDef: "UNIQUE (j)", OwningObject: "public.tablename", IsDomainConstraint: false, IsPartitionParent: false}
-			primarySingle = backup.Constraint{Oid: 0, Name: "tablename_pkey", ConType: "p", ConDef: "PRIMARY KEY (i)", OwningObject: "public.tablename", IsDomainConstraint: false, IsPartitionParent: false}
-			primaryComposite = backup.Constraint{Oid: 0, Name: "tablename_pkey", ConType: "p", ConDef: "PRIMARY KEY (i, j)", OwningObject: "public.tablename", IsDomainConstraint: false, IsPartitionParent: false}
-			foreignOne = backup.Constraint{Oid: 0, Name: "tablename_i_fkey", ConType: "f", ConDef: "FOREIGN KEY (i) REFERENCES other_tablename(a)", OwningObject: "public.tablename", IsDomainConstraint: false, IsPartitionParent: false}
-			foreignTwo = backup.Constraint{Oid: 0, Name: "tablename_j_fkey", ConType: "f", ConDef: "FOREIGN KEY (j) REFERENCES other_tablename(b)", OwningObject: "public.tablename", IsDomainConstraint: false, IsPartitionParent: false}
+			uniqueOne = backup.Constraint{
+				Oid: 1,
+				Name: "tablename_i_key",
+				ConType: "u",
+				ConDef: "UNIQUE (i)",
+				OwningObject: "public.tablename",
+				IsDomainConstraint: false,
+				IsPartitionParent: false,
+			}
+			uniqueTwo = backup.Constraint{
+				Oid: 0,
+				Name: "tablename_j_key",
+				ConType: "u",
+				ConDef: "UNIQUE (j)",
+				OwningObject: "public.tablename",
+				IsDomainConstraint: false,
+				IsPartitionParent: false,
+			}
+			primarySingle = backup.Constraint{
+				Oid: 0,
+				Name: "tablename_pkey",
+				ConType: "p",
+				ConDef: "PRIMARY KEY (i)",
+				OwningObject: "public.tablename",
+				IsDomainConstraint: false,
+				IsPartitionParent: false,
+			}
+			primaryComposite = backup.Constraint{
+				Oid: 0,
+				Name: "tablename_pkey",
+				ConType: "p",
+				ConDef: "PRIMARY KEY (i, j)",
+				OwningObject: "public.tablename",
+				IsDomainConstraint: false,
+				IsPartitionParent: false,
+			}
+			foreignOne = backup.Constraint{
+				Oid: 0,
+				Name: "tablename_i_fkey",
+				ConType: "f",
+				ConDef: "FOREIGN KEY (i) REFERENCES other_tablename(a)",
+				OwningObject: "public.tablename",
+				IsDomainConstraint: false,
+				IsPartitionParent: false,
+			}
+			foreignTwo = backup.Constraint{
+				Oid: 0,
+				Name: "tablename_j_fkey",
+				ConType: "f",
+				ConDef: "FOREIGN KEY (j) REFERENCES other_tablename(b)",
+				OwningObject: "public.tablename",
+				IsDomainConstraint: false,
+				IsPartitionParent: false,
+			}
 			emptyMetadataMap = backup.MetadataMap{}
 		})
 
@@ -42,16 +90,20 @@ var _ = Describe("backup/predata_shared tests", func() {
 		Context("Constraints involving different columns", func() {
 			It("prints an ADD CONSTRAINT statement for one UNIQUE constraint with a comment", func() {
 				constraints := []backup.Constraint{uniqueOne}
-				constraintMetadataMap := testutils.DefaultMetadataMap("CONSTRAINT", false, false, true, false)
+				constraintMetadataMap := testutils.DefaultMetadataMap("CONSTRAINT",
+					false, false, true, false)
 				backup.PrintConstraintStatements(backupfile, tocfile, constraints, constraintMetadataMap)
-				testutils.ExpectEntry(tocfile.PostdataEntries, 0, "", "public.tablename", "tablename_i_key", "CONSTRAINT")
+				testutils.ExpectEntry(tocfile.PostdataEntries, 0, "",
+					"public.tablename", "tablename_i_key", "CONSTRAINT")
 				testutils.AssertBufferContents(tocfile.PostdataEntries, buffer,
-					"ALTER TABLE ONLY public.tablename ADD CONSTRAINT tablename_i_key UNIQUE (i);", "COMMENT ON CONSTRAINT tablename_i_key ON public.tablename IS 'This is a constraint comment.';")
+					"ALTER TABLE ONLY public.tablename ADD CONSTRAINT tablename_i_key UNIQUE (i);",
+					"COMMENT ON CONSTRAINT tablename_i_key ON public.tablename IS 'This is a constraint comment.';")
 			})
 			It("prints an ADD CONSTRAINT statement for one UNIQUE constraint", func() {
 				constraints := []backup.Constraint{uniqueOne}
 				backup.PrintConstraintStatements(backupfile, tocfile, constraints, emptyMetadataMap)
-				testutils.AssertBufferContents(tocfile.PostdataEntries, buffer, `ALTER TABLE ONLY public.tablename ADD CONSTRAINT tablename_i_key UNIQUE (i);`)
+				testutils.AssertBufferContents(tocfile.PostdataEntries, buffer,
+					`ALTER TABLE ONLY public.tablename ADD CONSTRAINT tablename_i_key UNIQUE (i);`)
 			})
 			It("prints ADD CONSTRAINT statements for two UNIQUE constraints", func() {
 				constraints := []backup.Constraint{uniqueOne, uniqueTwo}
@@ -75,7 +127,8 @@ var _ = Describe("backup/predata_shared tests", func() {
 			It("prints an ADD CONSTRAINT statement for one FOREIGN KEY constraint", func() {
 				constraints := []backup.Constraint{foreignOne}
 				backup.PrintConstraintStatements(backupfile, tocfile, constraints, emptyMetadataMap)
-				testutils.AssertBufferContents(tocfile.PostdataEntries, buffer, `ALTER TABLE ONLY public.tablename ADD CONSTRAINT tablename_i_fkey FOREIGN KEY (i) REFERENCES other_tablename(a);`)
+				testutils.AssertBufferContents(tocfile.PostdataEntries, buffer,
+					`ALTER TABLE ONLY public.tablename ADD CONSTRAINT tablename_i_fkey FOREIGN KEY (i) REFERENCES other_tablename(a);`)
 			})
 			It("prints ADD CONSTRAINT statements for two FOREIGN KEY constraints", func() {
 				constraints := []backup.Constraint{foreignOne, foreignTwo}
@@ -129,7 +182,15 @@ var _ = Describe("backup/predata_shared tests", func() {
 					`ALTER TABLE ONLY public.tablename ADD CONSTRAINT tablename_i_fkey FOREIGN KEY (i) REFERENCES other_tablename(a);`)
 			})
 			It("doesn't print an ADD CONSTRAINT statement for domain check constraint", func() {
-				domainCheckConstraint := backup.Constraint{Oid: 0, Name: "check1", ConType: "c", ConDef: "CHECK (VALUE <> 42::numeric)", OwningObject: "public.domain1", IsDomainConstraint: true, IsPartitionParent: false}
+				domainCheckConstraint := backup.Constraint{
+					Oid: 0,
+					Name: "check1",
+					ConType: "c",
+					ConDef: "CHECK (VALUE <> 42::numeric)",
+					OwningObject: "public.domain1",
+					IsDomainConstraint: true,
+					IsPartitionParent: false,
+				}
 				constraints := []backup.Constraint{domainCheckConstraint}
 				backup.PrintConstraintStatements(backupfile, tocfile, constraints, emptyMetadataMap)
 				testhelper.NotExpectRegexp(buffer, `ALTER DOMAIN`)
@@ -138,13 +199,24 @@ var _ = Describe("backup/predata_shared tests", func() {
 				uniqueOne.IsPartitionParent = true
 				constraints := []backup.Constraint{uniqueOne}
 				backup.PrintConstraintStatements(backupfile, tocfile, constraints, emptyMetadataMap)
-				testutils.AssertBufferContents(tocfile.PostdataEntries, buffer, `ALTER TABLE public.tablename ADD CONSTRAINT tablename_i_key UNIQUE (i);`)
+				testutils.AssertBufferContents(tocfile.PostdataEntries, buffer,
+					`ALTER TABLE public.tablename ADD CONSTRAINT tablename_i_key UNIQUE (i);`)
 			})
 			It("prints an ADD CONSTRAINT [name] CHECK statement without keyword ONLY for a table with descendants (another table inherits it)", func() {
-				checkConstraint := backup.Constraint{Oid: 0, Name: "check1", ConType: "c", ConDef: "CHECK (VALUE <> 42::numeric)", OwningObject: "public.tablename", IsDomainConstraint: false, IsPartitionParent: false, ConIsLocal: true}
+				checkConstraint := backup.Constraint{
+					Oid: 0,
+					Name: "check1",
+					ConType: "c",
+					ConDef: "CHECK (VALUE <> 42::numeric)",
+					OwningObject: "public.tablename",
+					IsDomainConstraint: false,
+					IsPartitionParent: false,
+					ConIsLocal: true,
+				}
 				constraints := []backup.Constraint{checkConstraint}
 				backup.PrintConstraintStatements(backupfile, tocfile, constraints, emptyMetadataMap)
-				testutils.AssertBufferContents(tocfile.PostdataEntries, buffer, `ALTER TABLE public.tablename ADD CONSTRAINT check1 CHECK (VALUE <> 42::numeric);`)
+				testutils.AssertBufferContents(tocfile.PostdataEntries, buffer,
+					`ALTER TABLE public.tablename ADD CONSTRAINT check1 CHECK (VALUE <> 42::numeric);`)
 			})
 		})
 	})
@@ -154,13 +226,15 @@ var _ = Describe("backup/predata_shared tests", func() {
 			emptyMetadataMap := backup.MetadataMap{}
 
 			backup.PrintCreateSchemaStatements(backupfile, tocfile, schemas, emptyMetadataMap)
-			testutils.ExpectEntry(tocfile.PredataEntries, 0, "schemaname", "", "schemaname", "SCHEMA")
+			testutils.ExpectEntry(tocfile.PredataEntries, 0,
+				"schemaname", "", "schemaname", "SCHEMA")
 			testutils.AssertBufferContents(tocfile.PredataEntries, buffer,
 				"CREATE SCHEMA schemaname;")
 		})
 		It("can print a schema with privileges, an owner, security label, and a comment", func() {
 			schemas := []backup.Schema{{Oid: 1, Name: "schemaname"}}
-			schemaMetadataMap := testutils.DefaultMetadataMap("SCHEMA", true, true, true, true)
+			schemaMetadataMap := testutils.DefaultMetadataMap("SCHEMA",
+				true, true, true, true)
 
 			backup.PrintCreateSchemaStatements(backupfile, tocfile, schemas, schemaMetadataMap)
 			expectedStatements := []string{"CREATE SCHEMA schemaname;",
