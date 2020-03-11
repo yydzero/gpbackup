@@ -278,7 +278,6 @@ object-relational database management system');`)
 				backupSet := map[backup.UniqueID]bool{domainEntry: true, domain2Entry: true}
 
 				deps := backup.GetDependencies(connectionPool, backupSet)
-
 				Expect(deps).To(HaveLen(1))
 				Expect(deps[domain2Entry]).To(HaveLen(1))
 				Expect(deps[domain2Entry]).To(HaveKey(domainEntry))
@@ -296,7 +295,6 @@ object-relational database management system');`)
 					baseEntry: true, baseInEntry: true, baseOutEntry: true}
 
 				deps := backup.GetDependencies(connectionPool, backupSet)
-
 				Expect(deps).To(HaveLen(1))
 				Expect(deps[baseEntry]).To(HaveLen(2))
 				Expect(deps[baseEntry]).To(HaveKey(baseInEntry))
@@ -313,7 +311,6 @@ object-relational database management system');`)
 				backupSet := map[backup.UniqueID]bool{baseEntry: true, compositeEntry: true}
 
 				deps := backup.GetDependencies(connectionPool, backupSet)
-
 				Expect(deps).To(HaveLen(1))
 				Expect(deps[compositeEntry]).To(HaveLen(1))
 				Expect(deps[compositeEntry]).To(HaveKey(baseEntry))
@@ -337,7 +334,6 @@ object-relational database management system');`)
 				backupSet := map[backup.UniqueID]bool{baseEntry: true, base2Entry: true, compositeEntry: true}
 
 				deps := backup.GetDependencies(connectionPool, backupSet)
-
 				Expect(deps).To(HaveLen(1))
 				Expect(deps[compositeEntry]).To(HaveLen(2))
 				Expect(deps[compositeEntry]).To(HaveKey(baseEntry))
@@ -354,7 +350,6 @@ object-relational database management system');`)
 				backupSet := map[backup.UniqueID]bool{baseEntry: true, compositeEntry: true}
 
 				deps := backup.GetDependencies(connectionPool, backupSet)
-
 				Expect(deps).To(HaveLen(1))
 				Expect(deps[compositeEntry]).To(HaveLen(1))
 				Expect(deps[compositeEntry]).To(HaveKey(baseEntry))
@@ -377,7 +372,6 @@ object-relational database management system');`)
 				backupSet := map[backup.UniqueID]bool{tableEntry: true, typeEntry: true}
 
 				deps := backup.GetDependencies(connectionPool, backupSet)
-
 				Expect(deps).To(HaveLen(1))
 				Expect(deps[typeEntry]).To(HaveLen(1))
 				Expect(deps[typeEntry]).To(HaveKey(tableEntry))

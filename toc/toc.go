@@ -262,6 +262,9 @@ type TOCObjectWithMetadata interface {
 func (toc *TOC) AddMetadataEntry(section string, entry MetadataEntry, start, end uint64) {
 	entry.StartByte = start
 	entry.EndByte = end
+	if start == end && end != 0 {
+		return
+	}
 	*toc.metadataEntryMap[section] = append(*toc.metadataEntryMap[section], entry)
 }
 

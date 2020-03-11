@@ -131,7 +131,9 @@ func PrintRegularTableCreateStatement(metadataFile *utils.FileWithByteCount,
 	if table.TablespaceName != "" {
 		metadataFile.MustPrintf("TABLESPACE %s ", table.TablespaceName)
 	}
-	metadataFile.MustPrintf("%s", table.DistPolicy)
+	if table.DistPolicy != "" {
+		metadataFile.MustPrintf("%s", strings.TrimSpace(table.DistPolicy))
+	}
 	if table.PartDef != "" {
 		metadataFile.MustPrintf(" %s", strings.TrimSpace(table.PartDef))
 	}

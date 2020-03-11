@@ -6,11 +6,11 @@ package utils
  */
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
-	"os/user"
 	"strings"
 
 	"github.com/greenplum-db/gp-common-go-libs/dbconn"
@@ -52,14 +52,6 @@ func EscapeSingleQuotes(str string) string {
  * Generic file/directory manipulation functions
  */
 
-func GetUserAndHostInfo() (string, string, string) {
-	currentUser, _ := user.Current()
-	userName := currentUser.Username
-	userDir := currentUser.HomeDir
-	hostname, _ := os.Hostname()
-	return userName, userDir, hostname
-}
-
 func MustPrintf(file io.Writer, s string, v ...interface{}) uint64 {
 	bytesWritten, err := fmt.Fprintf(file, s, v...)
 	if err != nil {
@@ -70,14 +62,6 @@ func MustPrintf(file io.Writer, s string, v ...interface{}) uint64 {
 
 func MustPrintln(file io.Writer, v ...interface{}) uint64 {
 	bytesWritten, err := fmt.Fprintln(file, v...)
-	if err != nil {
-		gplog.Fatal(err, "Unable to write to file")
-	}
-	return uint64(bytesWritten)
-}
-
-func MustPrintBytes(file io.Writer, bytes []byte) uint64 {
-	bytesWritten, err := file.Write(bytes)
 	if err != nil {
 		gplog.Fatal(err, "Unable to write to file")
 	}
@@ -125,14 +109,26 @@ func (file *FileWithByteCount) MustPrintln(v ...interface{}) {
 }
 
 func (file *FileWithByteCount) MustPrintf(s string, v ...interface{}) {
+	if len(s) == 0 {
+		return
+	}
 	bytesWritten, err := fmt.Fprintf(file.Writer, s, v...)
 	gplog.FatalOnError(err, "Unable to write to file")
+	if bytesWritten == 0 {
+		gplog.FatalOnError(errors.New(fmt.Sprintf(s, v...)))
+	}
 	file.ByteCount += uint64(bytesWritten)
 }
 
 func (file *FileWithByteCount) MustPrint(s string) {
+	if len(s) == 0 {
+		return
+	}
 	bytesWritten, err := fmt.Fprint(file.Writer, s)
 	gplog.FatalOnError(err, "Unable to write to file")
+	if bytesWritten == 0 {
+		gplog.FatalOnError(errors.New(fmt.Sprint(s)))
+	}
 	file.ByteCount += uint64(bytesWritten)
 }
 
@@ -144,7 +140,6 @@ func CopyFile(src, dest string) error {
 		if err != nil {
 			return err
 		}
-
 		return ioutil.WriteFile(dest, content, info.Mode())
 	}
 
