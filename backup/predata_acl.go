@@ -18,9 +18,7 @@ var ACLRegex = regexp.MustCompile(`^(.*)=([a-zA-Z\*]*)/(.*)$`)
 
 type ObjectMetadata struct {
 	Privileges            []ACL
-	Name                  string
 	ObjectType            string
-	Schema                string
 	Owner                 string
 	Comment               string
 	SecurityLabelProvider string
@@ -67,7 +65,7 @@ func PrintStatements(metadataFile *utils.FileWithByteCount, toc *toc.TOC,
 	}
 }
 
-func PrintObjectMetadata(file *utils.FileWithByteCount, toc *toc.TOC,
+func PrintObjectMetadata(metadataFile *utils.FileWithByteCount, toc *toc.TOC,
 	metadata ObjectMetadata, obj toc.TOCObjectWithMetadata, owningTable string) {
 	_, entry := obj.GetMetadataEntry()
 	if entry.ObjectType == "DATABASE METADATA" {
@@ -89,23 +87,17 @@ func PrintObjectMetadata(file *utils.FileWithByteCount, toc *toc.TOC,
 	if securityLabel := metadata.GetSecurityLabelStatement(obj.FQN(), entry.ObjectType); securityLabel != "" {
 		statements = append(statements, strings.TrimSpace(securityLabel))
 	}
-	PrintStatements(file, toc, obj, statements)
+	PrintStatements(metadataFile, toc, obj, statements)
 }
 
 // Only print owner and grant statements
-func printObjectMetadataACLs(file *utils.FileWithByteCount, toc *toc.TOC,
-	obj ObjectMetadata, info FunctionInfo) {
-	_, entry := obj.GetMetadataEntry()
-	if entry.ObjectType == "FUNCTION" || entry.ObjectType == "AGGREGATE" {
-		statements := make([]string, 0)
-		fqn := fmt.Sprintf("%s.%s(%s)", entry.Schema, entry.Name, info.IdentArgs)
-		if owner := obj.GetOwnerStatement(fqn, entry.ObjectType); owner != "" {
-			statements = append(statements, strings.TrimSpace(owner))
-		}
-		if privileges := obj.GetPrivilegesStatements(fqn, "FUNCTION"); privileges != "" {
-			statements = append(statements, strings.TrimSpace(privileges))
-		}
-		PrintStatements(file, toc, obj, statements)
+func printFunctionACLs(metadataFile *utils.FileWithByteCount, obj ObjectMetadata, info FunctionInfo) {
+	fqn := fmt.Sprintf("%s(%s)", info.QualifiedName, info.IdentArgs)
+	if owner := obj.GetOwnerStatement(fqn, obj.ObjectType); owner != "" {
+		metadataFile.MustPrint(strings.TrimSpace(owner))
+	}
+	if privileges := obj.GetPrivilegesStatements(fqn, "FUNCTION"); privileges != "" {
+		metadataFile.MustPrint(strings.TrimSpace(privileges))
 	}
 }
 
@@ -133,9 +125,7 @@ func ConstructMetadataMap(results []MetadataQueryStruct) MetadataMap {
 			metadata = ObjectMetadata{}
 			metadata.Privileges = make([]ACL, 0)
 			metadata.Owner = result.Owner
-			metadata.Name = result.Name
 			metadata.ObjectType = result.ObjectType
-			metadata.Schema = result.Schema
 			metadata.Comment = result.Comment
 			metadata.SecurityLabelProvider = result.SecurityLabelProvider
 			metadata.SecurityLabel = result.SecurityLabel

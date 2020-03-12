@@ -280,6 +280,9 @@ func PrintDependentObjectStatements(metadataFile *utils.FileWithByteCount, toc *
 	//  Process ACLs for left over objects in the metadata map
 	for uniqueId, objectMeta := range metadataMap {
 		// e.g. Grants for any functions that belong to extensions
-		printObjectMetadataACLs(metadataFile, toc, objectMeta, funcInfoMap[uniqueId.Oid])
+		funcInfo, ok := funcInfoMap[uniqueId.Oid]
+		if ok {
+			printFunctionACLs(metadataFile, objectMeta, funcInfo)
+		}
 	}
 }
